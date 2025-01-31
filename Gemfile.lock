@@ -3,13 +3,7 @@ PATH
   specs:
     erc20 (0.0.0)
       backtrace (> 0)
-      decoor (> 0)
-      json (~> 2.7)
-      loog (> 0)
-      nokogiri (~> 1.10)
-      others (> 0)
       tago (> 0)
-      yaml (~> 0.3)
 
 GEM
   remote: https://rubygems.org/
@@ -54,7 +48,6 @@ GEM
     connection_pool (2.5.0)
     crass (1.0.6)
     date (3.4.1)
-    decoor (0.0.1)
     diff-lcs (1.5.1)
     docile (1.4.1)
     drb (2.2.1)
@@ -72,7 +65,6 @@ GEM
     loofah (2.24.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.12.0)
-    loog (0.6.0)
     minitest (5.25.4)
     minitest-reporters (1.7.1)
       ansi
@@ -87,7 +79,6 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.2-x86_64-linux-gnu)
       racc (~> 1.4)
-    others (0.0.3)
     parallel (1.26.3)
     parser (3.3.7.0)
       ast (~> 2.4.1)
@@ -99,7 +90,7 @@ GEM
       date
       stringio
     racc (1.8.1)
-    rack (3.1.8)
+    rack (3.1.9)
     rack-session (2.1.0)
       base64 (>= 0.1.0)
       rack (>= 3.0.0)
@@ -191,7 +182,6 @@ GEM
     unicode-emoji (4.0.4)
     uri (1.0.2)
     useragent (0.16.11)
-    yaml (0.4.0)
     yard (0.9.37)
     zeitwerk (2.7.1)
 
