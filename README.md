@@ -27,8 +27,8 @@ address = w.create
 # Send a few tokens to someone:
 w.send(to_address, amount)
 
-# Trigger a block when a new transaction arrives:
-w.react(&block)
+# Stay waiting, and trigger the block when transactions arrive:
+w.accept(&block)
 ```
 
 That's it.
