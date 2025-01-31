@@ -32,7 +32,7 @@ require_relative '../../lib/erc20/wallet'
 class TestWallet < Minitest::Test
   def test_simple
     keys = []
-    w = ERC20::Wallet.new(keys)
+    w = ERC20::Wallet.new(keys, log: Loog::VERBOSE)
     refute_nil(w.create)
   end
 end

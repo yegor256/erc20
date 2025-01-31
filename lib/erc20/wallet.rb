@@ -33,9 +33,11 @@ class ERC20::Wallet
   # Constructor.
   # @param [Array<String>] keys Private keys
   # @param [String] host The host of the server
-  def initialize(keys, host: '')
+  # @param [Object] log The destination for logs
+  def initialize(keys, host: '', log: $stdout)
     @keys = keys
     @host = host
+    @log = log
   end
 
   # Create new key and return its public address.
