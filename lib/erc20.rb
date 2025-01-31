@@ -29,25 +29,3 @@ module ERC20
   # Current version of the gem (changed by .rultor.yml on every release)
   VERSION = '0.0.0'
 end
-
-# A wallet.
-#
-# It is NOT thread-safe!
-#
-# Author:: Yegor Bugayenko (yegor256@gmail.com)
-# Copyright:: Copyright (c) 2025 Yegor Bugayenko
-# License:: MIT
-class ERC20::Wallet
-  # Constructor.
-  # @param [Array<String>] keys Private keys
-  # @param [String] host The host of the server
-  def initialize(keys, host: '')
-    @keys = keys
-    @host = host
-  end
-
-  # Create new key and return its public address.
-  def create
-    'none'
-  end
-end

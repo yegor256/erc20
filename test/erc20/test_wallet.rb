@@ -22,7 +22,8 @@
 
 require 'minitest/autorun'
 require 'loog'
-require_relative '../lib/wallet'
+require_relative '../../lib/erc20'
+require_relative '../../lib/erc20/wallet'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
