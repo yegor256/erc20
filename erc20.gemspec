@@ -27,7 +27,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new('>= 0') if s.respond_to? :required_rubygems_version=
   s.required_ruby_version = '>=3.0'
   s.name = 'erc20'
-  s.version = erc20::VERSION
+  s.version = ERC20::VERSION
   s.license = 'MIT'
   s.summary = 'Sending and receiving ERC20 tokens in Etherium network'
   s.description =
