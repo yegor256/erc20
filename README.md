@@ -15,13 +15,10 @@ This small Ruby library makes Etherium ERC20 manipulations
 as simple as they can be, for a cryptocurrency newbie:
 
 ```ruby
-# List of private keys:
-keys = ['...', '...']
-
 # Create a wallet:
 w = ERC20::Wallet.new(
   contract: ERC20::Wallet.USDT, # hex of it
-  host: '??',
+  host: 'https://mainnet.infura.io/v3/<your-key>',
   log: $stdout
 )
 
@@ -32,7 +29,13 @@ usdt = w.balance(address)
 txn = w.pay(private_key, to_address, amount)
 
 # Stay waiting, and trigger the block when transactions arrive:
-w.accept(private_keys, &block)
+private_keys = ['0x...', '0x...']
+w.accept(private_keys) do |txn|
+  puts txn[:time] # when did it happen
+  puts txn[:from] # sending address hex
+  puts txn[:to] # receiving address hex
+  puts txn[:amount] # how much
+end
 ```
 
 To generate a new private key, use [eth](https://rubygems.org/gems/eth):
@@ -42,7 +45,11 @@ require 'eth'
 key = Eth::Key.new.private_hex
 ```
 
-This `key` can be added to the `keys` array above.
+To get public key from private one:
+
+```ruby
+public_hex = Eth::Key.new(priv: private_key_hex).address
+```
 
 ## How to contribute
 

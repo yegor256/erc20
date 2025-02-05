@@ -34,7 +34,7 @@ class TestWallet < Minitest::Test
     a = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
     b = mainnet.balance(a)
     refute_nil(b)
-    assert_in_delta(27.258889, b)
+    assert_equal(27_258_889, b)
   end
 
   def test_checks_balance_on_sepolia

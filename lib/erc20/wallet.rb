@@ -54,7 +54,7 @@ class ERC20::Wallet
     data = "0x#{func}#{padded}"
     c = JSONRPC::Client.new(@rpc)
     r = c.eth_call({ to: @contract, data: data }, 'latest')
-    r[2..].to_i(16).to_f / 1_000_000
+    r[2..].to_i(16)
   end
 
   # Send a single payment from a private address to a public one.
