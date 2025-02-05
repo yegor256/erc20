@@ -37,6 +37,14 @@ class TestWallet < Minitest::Test
     assert_equal(27_258_889, b)
   end
 
+  def test_fails_with_invalid_infura_key
+    w = ERC20::Wallet.new(
+      rpc: 'https://mainnet.infura.io/v3/invalid-key-here',
+      log: Loog::NULL
+    )
+    assert_raises(StandardError) { w.balance('0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6') }
+  end
+
   def test_checks_balance_on_sepolia
     skip('does not work yet')
     a = '0xf28A36f671CCb6bE6BF55E0e1D3C107263B1DFA1'
