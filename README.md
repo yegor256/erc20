@@ -19,19 +19,27 @@ as simple as they can be, for a cryptocurrency newbie:
 keys = ['...', '...']
 
 # Create a wallet:
-w = ERC20::Wallet.new(keys)
-
-# Add new key and return its public address:
-address = w.create
+w = ERC20::Wallet.new(
+  contract: ERC20::Wallet.USDT,
+  host: '??',
+  log: $stdout
+)
 
 # Send a few tokens to someone:
-w.send(to_address, amount)
+w.pay(private_key, to_address, amount)
 
 # Stay waiting, and trigger the block when transactions arrive:
-w.accept(&block)
+w.accept(private_keys, &block)
 ```
 
-That's it.
+To generate a new private key, use [eth](https://rubygems.org/gems/eth):
+
+```ruby
+require 'eth'
+key = Eth::Key.new.private_hex
+```
+
+This `key` can be added to the `keys` array above.
 
 ## How to contribute
 

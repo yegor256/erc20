@@ -30,18 +30,36 @@ require_relative '../erc20'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class ERC20::Wallet
+  # Address of USDT contract.
+  USDT = '0xdac17f958d2ee523a2206206994597c13d831ec7'
+
   # Constructor.
-  # @param [Array<String>] keys Private keys
+  # @param [String] contract Hex of the contract in Etherium
   # @param [String] host The host of the server
   # @param [Object] log The destination for logs
-  def initialize(keys, host: '', log: $stdout)
-    @keys = keys
+  def initialize(contract: ERC20::Wallet::USDT, host: '', log: $stdout)
+    @contract = contract
     @host = host
     @log = log
   end
 
-  # Create new key and return its public address.
-  def create
-    'none'
+  # Send a single payment from a private address to a public one.
+  #
+  # @param [String] sender Private key, in hex
+  # @param [String] receiver Public key, in hex
+  # @param [Integer] amount The amount to send
+  # @return [String] Transaction hash
+  def pay(_sender, _receiver, _amount)
+    # do it
+    'abcdef'
+  end
+
+  # Wait for incoming transactions and let the block know when they
+  # arrive. It's a blocking call, it's better to run it in a separate
+  # thread.
+  #
+  # @param [Array<String>] keys Private keys
+  def accept(_keys)
+    # do it
   end
 end

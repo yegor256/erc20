@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+require 'eth'
 require 'minitest/autorun'
 require 'loog'
 require_relative '../../lib/erc20'
@@ -30,9 +31,27 @@ require_relative '../../lib/erc20/wallet'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWallet < Minitest::Test
-  def test_simple
-    keys = []
-    w = ERC20::Wallet.new(keys, log: Loog::VERBOSE)
-    refute_nil(w.create)
+  def test_send_payment
+    w = ERC20::Wallet.new(log: Loog::VERBOSE)
+    sender = Eth::Key.new
+    receiver = Eth::Key.new
+    txn = w.pay(sender.private_hex, receiver.public_hex, 100)
+    refute_nil(txn)
+  end
+
+  def test_accept_payments_to_my_addresses
+    receiver = Eth::Key.new
+    w = ERC20::Wallet.new(log: Loog::VERBOSE)
+    txn = nil
+    daemon =
+      Thread.new do
+        w.accept([receiver.private_hex]) do |t|
+          txn = t
+        end
+      end
+    sender = Eth::Key.new
+    w.pay(sender.private_hex, receiver.public_hex, 100)
+    daemon.join(30)
+    # refute_nil(txn)
   end
 end
