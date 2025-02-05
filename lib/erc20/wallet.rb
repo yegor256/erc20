@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+require 'jsonrpc/client'
 require_relative '../erc20'
 
 # A wallet.
@@ -35,12 +36,25 @@ class ERC20::Wallet
 
   # Constructor.
   # @param [String] contract Hex of the contract in Etherium
-  # @param [String] host The host of the server
+  # @param [String] rpc The URL of Etherium JSON-RPC provider
   # @param [Object] log The destination for logs
-  def initialize(contract: ERC20::Wallet::USDT, host: '', log: $stdout)
+  def initialize(contract: USDT, rpc: '', log: $stdout)
     @contract = contract
-    @host = host
+    @rpc = rpc
     @log = log
+  end
+
+  # Get balance of a public address.
+  #
+  # @param [String] key Public key, in hex, starting from '0x'
+  # @return [Integer] Balance, in
+  def balance(hex)
+    func = '70a08231' # balanceOf
+    padded = "000000000000000000000000#{hex[2..].downcase}"
+    data = "0x#{func}#{padded}"
+    c = JSONRPC::Client.new(@rpc)
+    r = c.eth_call({ to: @contract, data: data }, 'latest')
+    r[2..].to_i(16).to_f / 1_000_000
   end
 
   # Send a single payment from a private address to a public one.

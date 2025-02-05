@@ -20,13 +20,16 @@ keys = ['...', '...']
 
 # Create a wallet:
 w = ERC20::Wallet.new(
-  contract: ERC20::Wallet.USDT,
+  contract: ERC20::Wallet.USDT, # hex of it
   host: '??',
   log: $stdout
 )
 
-# Send a few tokens to someone:
-w.pay(private_key, to_address, amount)
+# Check balance on the address:
+usdt = w.balance(address)
+
+# Send a few tokens to someone and get transaction hash:
+txn = w.pay(private_key, to_address, amount)
 
 # Stay waiting, and trigger the block when transactions arrive:
 w.accept(private_keys, &block)
