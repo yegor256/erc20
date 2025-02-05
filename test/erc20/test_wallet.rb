@@ -74,7 +74,10 @@ class TestWallet < Minitest::Test
   private
 
   def infura_key
-    ENV.fetch('INFURA_KEY')
+    var = 'INFURA_KEY'
+    key = ENV.fetch(var)
+    skip("The #{var} environment variable is not set") if key.nil?
+    key
   end
 
   def mainnet
