@@ -14,7 +14,7 @@
 This small Ruby library makes manipulations with [Etherium] [ERC20] tokens
 as simple as they can be, if you have a provider of
 [JSON-RPC] and [WebSocket] Etherium APIs, for example
-[Infura] or [Alchemy]:
+[Infura], [GetBlock], or [Alchemy]:
 
 ```ruby
 # Create a wallet:
@@ -75,3 +75,4 @@ If it's clean and you don't see any error messages, submit your pull request.
 [Websocket]: https://ethereum.org/en/developers/tutorials/using-websockets/
 [Infura]: https://infura.io/
 [Alchemy]: https://alchemy.com/
+[GetBlock]: https://getblock.io/
