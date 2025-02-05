@@ -11,8 +11,10 @@
 [![Hits-of-Code](https://hitsofcode.com/github/yegor256/erc20)](https://hitsofcode.com/view/github/yegor256/erc20)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yegor256/erc20/blob/master/LICENSE.txt)
 
-This small Ruby library makes Etherium ERC20 manipulations
-as simple as they can be, for a cryptocurrency newbie:
+This small Ruby library makes manipulations with [Etherium] [ERC20] tokens
+as simple as they can be, if you have a provider of
+[JSON-RPC] and [WebSocket] Etherium APIs, for example
+[Infura] or [Alchemy]:
 
 ```ruby
 # Create a wallet:
@@ -66,3 +68,10 @@ bundle exec rake
 ```
 
 If it's clean and you don't see any error messages, submit your pull request.
+
+[Etherium]: https://en.wikipedia.org/wiki/Ethereum
+[ERC20]: https://ethereum.org/en/developers/docs/standards/tokens/erc-20/
+[JSON-RPC]: https://ethereum.org/en/developers/docs/apis/json-rpc/
+[Websocket]: https://ethereum.org/en/developers/tutorials/using-websockets/
+[Infura]: https://infura.io/
+[Alchemy]: https://alchemy.com/
