@@ -73,10 +73,14 @@ class TestWallet < Minitest::Test
 
   private
 
+  def infura_key
+    ENV.fetch('INFURA_KEY')
+  end
+
   def mainnet
     ERC20::Wallet.new(
       contract: ERC20::Wallet::USDT,
-      rpc: 'https://mainnet.infura.io/v3/8930cfe730fe498085fe3eb2999b3c4a',
+      rpc: "https://mainnet.infura.io/v3/#{infura_key}",
       log: Loog::VERBOSE
     )
   end
@@ -84,7 +88,7 @@ class TestWallet < Minitest::Test
   def sepolia
     ERC20::Wallet.new(
       contract: ERC20::Wallet::USDT,
-      rpc: 'https://sepolia.infura.io/v3/8930cfe730fe498085fe3eb2999b3c4a',
+      rpc: "https://sepolia.infura.io/v3/#{infura_key}",
       log: Loog::VERBOSE
     )
   end
