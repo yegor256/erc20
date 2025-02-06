@@ -88,26 +88,27 @@ class TestWallet < Minitest::Test
 
   private
 
-  def infura_key
-    var = 'INFURA_KEY'
-    key = ENV.fetch(var, nil)
+  def env(var)
+    key = ENV.fetch(var)
     skip("The #{var} environment variable is not set") if key.nil?
     key
   end
 
   def mainnet
-    ERC20::Wallet.new(
-      contract: ERC20::Wallet::USDT,
-      rpc: "https://mainnet.infura.io/v3/#{infura_key}",
-      log: Loog::VERBOSE
-    )
+    [
+      "https://mainnet.infura.io/v3/#{env('INFURA_KEY')}",
+      "https://go.getblock.io/#{env('GETBLOCK_KEY')}"
+    ].map do |rpc|
+      ERC20::Wallet.new(rpc:, log: Loog::NULL)
+    end.sample
   end
 
   def sepolia
-    ERC20::Wallet.new(
-      contract: ERC20::Wallet::USDT,
-      rpc: "https://sepolia.infura.io/v3/#{infura_key}",
-      log: Loog::VERBOSE
-    )
+    [
+      "https://sepolia.infura.io/v3/#{env('INFURA_KEY')}",
+      "https://go.getblock.io/#{env('GETBLOCK_SEPOILA_KEY')}"
+    ].map do |rpc|
+      ERC20::Wallet.new(rpc:, log: Loog::NULL)
+    end.sample
   end
 end

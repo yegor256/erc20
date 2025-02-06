@@ -46,12 +46,13 @@ class ERC20::Wallet
 
   # Get balance of a public address.
   #
-  # @param [String] key Public key, in hex, starting from '0x'
+  # @param [String] hex Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in
   def balance(hex)
     func = '70a08231' # balanceOf
     padded = "000000000000000000000000#{hex[2..].downcase}"
     data = "0x#{func}#{padded}"
+    JSONRPC.logger = @log
     c = JSONRPC::Client.new(@rpc)
     r = c.eth_call({ to: @contract, data: data }, 'latest')
     r[2..].to_i(16)
@@ -59,9 +60,9 @@ class ERC20::Wallet
 
   # Send a single payment from a private address to a public one.
   #
-  # @param [String] sender Private key, in hex
-  # @param [String] receiver Public key, in hex
-  # @param [Integer] amount The amount to send
+  # @param [String] _sender Private key, in hex
+  # @param [String] _receiver Public key, in hex
+  # @param [Integer] _amount The amount to send
   # @return [String] Transaction hash
   def pay(_sender, _receiver, _amount)
     # do it
@@ -72,7 +73,7 @@ class ERC20::Wallet
   # arrive. It's a blocking call, it's better to run it in a separate
   # thread.
   #
-  # @param [Array<String>] keys Private keys
+  # @param [Array<String>] _keys Private keys
   def accept(_keys)
     # do it
   end
