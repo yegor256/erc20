@@ -50,7 +50,7 @@ key = Eth::Key.new.private_hex
 To get public key from private one:
 
 ```ruby
-public_hex = Eth::Key.new(priv: private_key_hex).address
+public_hex = Eth::Key.new(priv: key).address
 ```
 
 ## How to contribute

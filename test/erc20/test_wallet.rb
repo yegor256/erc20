@@ -21,8 +21,10 @@
 # SOFTWARE.
 
 require 'donce'
+require 'eth'
 require 'loog'
 require 'random-port'
+require 'typhoeus'
 require 'minitest/autorun'
 require_relative '../../lib/erc20'
 require_relative '../../lib/erc20/wallet'
@@ -35,6 +37,12 @@ class TestWallet < Minitest::Test
   # At this address, in the mainnet, there are a few USDT tokens. I won't
   # move them anyway, that's why tests can use this address forever.
   STABLE_ADDRESS = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
+
+  # One guy private hex.
+  JEFF = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
+
+  # Another guy private hex.
+  WALTER = '91f9111b1744d55361e632771a4e53839e9442a9fef45febc0a5c838c686a15b'
 
   def test_checks_balance_on_mainnet
     b = mainnet.balance(STABLE_ADDRESS)
@@ -65,18 +73,24 @@ class TestWallet < Minitest::Test
   end
 
   def test_checks_balance_on_hardhat
+    contract = donce(
+      home: File.join(__dir__, '../../hardhat'),
+      command: 'cat /hh/address.txt'
+    )
     RandomPort::Pool::SINGLETON.acquire do |port|
-      qbash('npx --config=/app/hardhat.config.ts hardhat node') do |pid|
-      # donce(
-      #   home: File.join(__dir__, '../../hardhat'),
-      #   ports: { port => 8545 },
-      #   command: 'npx --config=/app/hardhat.config.ts hardhat node',
-      #   log: Loog::VERBOSE,
-      #   root: true
-      # ) do |_|
-        sleep 3
-        w = ERC20::Wallet.new(rpc: "https://#{donce_host}:#{port}", log: Loog::VERBOSE)
-        b = w.balance('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266')
+      donce(
+        home: File.join(__dir__, '../../hardhat'),
+        ports: { port => 8545 },
+        command: 'npx hardhat node',
+        log: Loog::VERBOSE
+      ) do |_|
+        wait_for(port)
+        w = ERC20::Wallet.new(
+          contract:,
+          rpc: "http://localhost:#{port}",
+          log: Loog::VERBOSE
+        )
+        b = w.balance(Eth::Key.new(priv: JEFF).address.to_s)
         assert_equal(11000, b)
       end
     end
@@ -109,6 +123,15 @@ class TestWallet < Minitest::Test
   end
 
   private
+
+  def wait_for(port)
+    loop do
+      break if Typhoeus::Request.get("http://localhost:#{port}").code == 200
+    rescue Errno::ECONNREFUSED
+      sleep(0.1)
+      retry
+    end
+  end
 
   def env(var)
     key = ENV.fetch(var)

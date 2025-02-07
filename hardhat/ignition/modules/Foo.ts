@@ -18,10 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-require("@nomicfoundation/hardhat-toolbox");
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-/** @type import('hardhat/config').HardhatUserConfig */
+const FooModule = buildModule("FooModule", (m) => {
+  const foo = m.contract("Foo");
+  return { foo };
+});
 
-module.exports = {
-  solidity: "0.8.28",
-};
+export default FooModule;

@@ -20,11 +20,19 @@
 
 FROM node:22
 
+ENV HOME=/hh
 WORKDIR /app
 EXPOSE 8545
-COPY . hardhat.config.ts
 
-ENV HOME=/app
+COPY package.json .
+RUN npm install
 
-RUN npm install -g hardhat
-#RUN npx hardhat ignition deploy ./ignition/modules/Lock.js
+COPY hardhat.config.js .
+COPY contracts contracts
+COPY ignition ignition
+
+RUN npx hardhat node \
+    & sleep 3 \
+    && npx hardhat ignition deploy ./ignition/modules/Foo.ts --network localhost
+
+RUN npx hardhat ignition status "$(npx hardhat ignition deployments | tail -1 | xargs)" | tail -1 | cut -d' ' -f3 > "${HOME}/address.txt"

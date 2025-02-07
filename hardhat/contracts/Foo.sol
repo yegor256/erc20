@@ -5,10 +5,10 @@ pragma solidity ^0.8.28;
  * @title Minimal ERC20 Token
  * @dev Implements the basic ERC20 interface.
  */
-contract MyToken {
+contract Foo {
     // Token details
-    string public name = "MyToken";
-    string public symbol = "MTK";
+    string public name = "Foo";
+    string public symbol = "FOO";
     uint8 public decimals = 18;
 
     // Tracks the total token supply
@@ -28,9 +28,11 @@ contract MyToken {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
     // Constructor: Mint an initial supply to the deployer
-    constructor(uint256 initialSupply) {
+    constructor() {
         owner = msg.sender;
-        _mint(owner, initialSupply);
+        _mint(owner, 100000);
+        _mint(address(bytes20(bytes("0xd5fF1bFCDE7A03Da61ad229d962c74F1eA2f16A5"))), 100000);
+        _mint(address(bytes20(bytes("0xd7a63Ac9DD3d7878bc042A4bADA214EE4aff8c85"))), 100000);
     }
 
     /**
