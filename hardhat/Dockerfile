@@ -30,9 +30,8 @@ RUN npm install
 COPY hardhat.config.js .
 COPY contracts contracts
 COPY ignition ignition
+RUN rm -rf ignition/deployments
 
-RUN npx hardhat node \
-    & sleep 3 \
-    && npx hardhat ignition deploy ./ignition/modules/Foo.ts --network localhost
+RUN npx hardhat compile
 
-RUN npx hardhat ignition status "$(npx hardhat ignition deployments | tail -1 | xargs)" | tail -1 | cut -d' ' -f3 > "${HOME}/address.txt"
+RUN rm -rf cache

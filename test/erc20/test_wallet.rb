@@ -24,6 +24,7 @@ require 'donce'
 require 'eth'
 require 'loog'
 require 'random-port'
+require 'shellwords'
 require 'typhoeus'
 require 'minitest/autorun'
 require_relative '../../lib/erc20'
@@ -72,11 +73,19 @@ class TestWallet < Minitest::Test
     assert_predicate(b, :positive?)
   end
 
+  def test_checks_here
+    RandomPort::Pool::SINGLETON.acquire do |port|
+      w = ERC20::Wallet.new(
+        contract: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+        rpc: "http://localhost:8545",
+        log: Loog::VERBOSE
+      )
+      b = w.balance(Eth::Key.new(priv: JEFF).address.to_s)
+      assert_equal(11000, b)
+    end
+  end
+
   def test_checks_balance_on_hardhat
-    contract = donce(
-      home: File.join(__dir__, '../../hardhat'),
-      command: 'cat /hh/address.txt'
-    )
     RandomPort::Pool::SINGLETON.acquire do |port|
       donce(
         home: File.join(__dir__, '../../hardhat'),
@@ -85,6 +94,17 @@ class TestWallet < Minitest::Test
         log: Loog::VERBOSE
       ) do |_|
         wait_for(port)
+        cmd = [
+          '(npx hardhat ignition deploy ./ignition/modules/Foo.ts --network foo)',
+          '(npx hardhat ignition deployments | tail -1 > /tmp/deployment.txt)',
+          '(npx hardhat ignition status "$(cat /tmp/deployment.txt)" | tail -1 | cut -d" " -f3)'
+        ].join(' && ')
+        contract = donce(
+          home: File.join(__dir__, '../../hardhat'),
+          command: "/bin/bash -c #{Shellwords.escape(cmd)}",
+          log: Loog::VERBOSE,
+          root: true
+        ).split("\n").last
         w = ERC20::Wallet.new(
           contract:,
           rpc: "http://localhost:#{port}",
