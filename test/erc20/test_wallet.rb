@@ -20,8 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'minitest/autorun'
+require 'donce'
 require 'loog'
+require 'random-port'
+require 'minitest/autorun'
 require_relative '../../lib/erc20'
 require_relative '../../lib/erc20/wallet'
 
@@ -30,9 +32,12 @@ require_relative '../../lib/erc20/wallet'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWallet < Minitest::Test
+  # At this address, in the mainnet, there are a few USDT tokens. I won't
+  # move them anyway, that's why tests can use this address forever.
+  STABLE_ADDRESS = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
+
   def test_checks_balance_on_mainnet
-    a = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
-    b = mainnet.balance(a)
+    b = mainnet.balance(STABLE_ADDRESS)
     refute_nil(b)
     assert_equal(27_258_889, b)
   end
@@ -49,15 +54,32 @@ class TestWallet < Minitest::Test
       rpc: 'https://mainnet.infura.io/v3/invalid-key-here',
       log: Loog::NULL
     )
-    assert_raises(StandardError) { w.balance('0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6') }
+    assert_raises(StandardError) { w.balance(STABLE_ADDRESS) }
   end
 
-  def test_checks_balance_on_sepolia
+  def test_checks_balance_on_testnet
     skip('does not work')
-    a = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
-    b = sepolia.balance(a)
+    b = testnet.balance(STABLE_ADDRESS)
     refute_nil(b)
     assert_predicate(b, :positive?)
+  end
+
+  def test_checks_balance_on_hardhat
+    RandomPort::Pool::SINGLETON.acquire do |port|
+      qbash('npx --config=/app/hardhat.config.ts hardhat node') do |pid|
+      # donce(
+      #   home: File.join(__dir__, '../../hardhat'),
+      #   ports: { port => 8545 },
+      #   command: 'npx --config=/app/hardhat.config.ts hardhat node',
+      #   log: Loog::VERBOSE,
+      #   root: true
+      # ) do |_|
+        sleep 3
+        w = ERC20::Wallet.new(rpc: "https://#{donce_host}:#{port}", log: Loog::VERBOSE)
+        b = w.balance('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266')
+        assert_equal(11000, b)
+      end
+    end
   end
 
   def test_sends_payment
@@ -103,7 +125,7 @@ class TestWallet < Minitest::Test
     end.sample
   end
 
-  def sepolia
+  def testnet
     [
       "https://sepolia.infura.io/v3/#{env('INFURA_KEY')}",
       "https://go.getblock.io/#{env('GETBLOCK_SEPOILA_KEY')}"

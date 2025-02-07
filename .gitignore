@@ -6,3 +6,6 @@ coverage/
 rdoc/
 doc/
 .yardoc/
+node_modules/
+package.json
+package-lock.json
