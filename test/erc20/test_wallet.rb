@@ -78,9 +78,10 @@ class TestWallet < Minitest::Test
       donce(
         home: File.join(__dir__, '../../hardhat'),
         ports: { port => 8545 },
+        args: "--build-arg PORT=#{port}",
         command: 'npx hardhat node',
-        log: Loog::NULL
-      ) do |_|
+        log: Loog::VERBOSE
+      ) do
         wait_for(port)
         cmd = [
           '(npx hardhat ignition deploy ./ignition/modules/Foo.ts --network foo)',

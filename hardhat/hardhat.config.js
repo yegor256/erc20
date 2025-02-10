@@ -24,10 +24,10 @@ require("@nomicfoundation/hardhat-toolbox");
 
 module.exports = {
   solidity: "0.8.28",
-  defaultNetwork: 'foo',
+  defaultNetwork: "foo",
   networks: {
     foo: {
-      url: 'http://host.docker.internal:1025'
+      url: "http://host.docker.internal:PORT"
     }
   }
 };

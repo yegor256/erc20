@@ -24,10 +24,13 @@ ENV HOME=/hh
 WORKDIR /app
 EXPOSE 8545
 
+ARG PORT=8080
+
 COPY package.json .
 RUN npm install
 
 COPY hardhat.config.js .
+RUN sed -i 's/PORT/$PORT/g' hardhat.config.js
 COPY contracts contracts
 COPY ignition ignition
 RUN rm -rf ignition/deployments

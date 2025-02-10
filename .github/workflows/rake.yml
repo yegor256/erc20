@@ -35,6 +35,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update --yes --fix-missing
+          sudo apt-get install --yes autoconf
+        if: matrix.os == 'ubuntu-24.04'
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
