@@ -30,15 +30,25 @@ jobs:
   rake:
     strategy:
       matrix:
-        os: [ubuntu-24.04, macos-15, windows-2022]
+        os: [ubuntu-24.04]
         ruby: [3.3]
     runs-on: ${{ matrix.os }}
+    env:
+      INFURA_KEY: ${{ secrets.INFURA_KEY }}
+      GETBLOCK_KEY: ${{ secrets.GETBLOCK_KEY }}
+      GETBLOCK_SEPOILA_KEY: ${{ secrets.GETBLOCK_SEPOILA_KEY }}
     steps:
       - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update --yes --fix-missing
+          sudo apt-get install --yes autoconf
+        if: matrix.os == 'ubuntu-24.04'
+      - run: brew install automake
+        if: matrix.os == 'macos-15'
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - run: bundle config set --global path "$(pwd)/vendor/bundle"
-      - run: bundle install
+      - run: bundle install --no-color
       - run: bundle exec rake

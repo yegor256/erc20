@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 # Copyright (c) 2025 Yegor Bugayenko
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -14,32 +12,33 @@
 #
 # THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFINGEMENT. IN NO EVENT SHALL THE
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-source 'https://rubygems.org'
-gemspec
+FROM node:22
 
-gem 'donce', '>0', require: false
-gem 'eth', '>0', require: false
-gem 'loog', '>0', require: false
-gem 'minitest', '5.25.4', require: false
-gem 'minitest-reporters', '1.7.1', require: false
-gem 'minitest-retry', '0.2.5', require: false
-gem 'qbash', '>0', require: false
-gem 'rake', '13.2.1', require: false
-gem 'random-port', '>0', require: false
-gem 'rspec-rails', '7.1.0', require: false
-gem 'rubocop', '1.71.2', require: false
-gem 'rubocop-minitest', '0.36.0', require: false
-gem 'rubocop-performance', '1.23.1', require: false
-gem 'rubocop-rake', '>0', require: false
-gem 'rubocop-rspec', '3.4.0', require: false
-gem 'simplecov', '0.22.0', require: false
-gem 'simplecov-cobertura', '2.1.0', require: false
-gem 'threads', '0.4.1', require: false
-gem 'typhoeus', '>0', require: false
-gem 'yard', '0.9.37', require: false
+ENV HOME=/hh
+WORKDIR /app
+EXPOSE 8545
+
+COPY package.json .
+RUN npm install
+
+# These two must be provided via '--build-arg':
+ARG PORT=8080
+ARG HOST=localhost
+COPY hardhat.config.js .
+RUN sed -i "s/PORT/$PORT/g" hardhat.config.js
+RUN sed -i "s/HOST/$HOST/g" hardhat.config.js
+
+COPY contracts contracts
+COPY ignition ignition
+
+RUN rm -rf ignition/deployments
+
+RUN npx hardhat compile
+
+RUN rm -rf cache

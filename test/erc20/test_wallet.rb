@@ -20,8 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'minitest/autorun'
+require 'donce'
+require 'eth'
 require 'loog'
+require 'random-port'
+require 'shellwords'
+require 'typhoeus'
+require 'minitest/autorun'
 require_relative '../../lib/erc20'
 require_relative '../../lib/erc20/wallet'
 
@@ -30,9 +35,18 @@ require_relative '../../lib/erc20/wallet'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWallet < Minitest::Test
+  # At this address, in the mainnet, there are a few USDT tokens. I won't
+  # move them anyway, that's why tests can use this address forever.
+  STABLE_ADDRESS = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
+
+  # One guy private hex.
+  JEFF = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
+
+  # Another guy private hex.
+  WALTER = '91f9111b1744d55361e632771a4e53839e9442a9fef45febc0a5c838c686a15b'
+
   def test_checks_balance_on_mainnet
-    a = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
-    b = mainnet.balance(a)
+    b = mainnet.balance(STABLE_ADDRESS)
     refute_nil(b)
     assert_equal(27_258_889, b)
   end
@@ -49,15 +63,48 @@ class TestWallet < Minitest::Test
       rpc: 'https://mainnet.infura.io/v3/invalid-key-here',
       log: Loog::NULL
     )
-    assert_raises(StandardError) { w.balance('0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6') }
+    assert_raises(StandardError) { w.balance(STABLE_ADDRESS) }
   end
 
-  def test_checks_balance_on_sepolia
+  def test_checks_balance_on_testnet
     skip('does not work')
-    a = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
-    b = sepolia.balance(a)
+    b = testnet.balance(STABLE_ADDRESS)
     refute_nil(b)
     assert_predicate(b, :positive?)
+  end
+
+  def test_checks_balance_on_hardhat
+    RandomPort::Pool::SINGLETON.acquire do |port|
+      donce(
+        home: File.join(__dir__, '../../hardhat'),
+        ports: { port => 8545 },
+        command: 'npx hardhat node',
+        log: Loog::VERBOSE
+      ) do
+        wait_for(port)
+        cmd = [
+          '(cat hardhat.config.js)',
+          '(ls -al)',
+          '(npx hardhat ignition deploy ./ignition/modules/Foo.ts --network foo)',
+          '(npx hardhat ignition deployments | tail -1 > /tmp/deployment.txt)',
+          '(npx hardhat ignition status "$(cat /tmp/deployment.txt)" | tail -1 | cut -d" " -f3)'
+        ].join(' && ')
+        contract = donce(
+          home: File.join(__dir__, '../../hardhat'),
+          command: "/bin/bash -c #{Shellwords.escape(cmd)}",
+          build_args: { 'HOST' => donce_host, 'PORT' => port },
+          log: Loog::VERBOSE,
+          root: true
+        ).split("\n").last
+        w = ERC20::Wallet.new(
+          contract:,
+          rpc: "http://localhost:#{port}",
+          log: Loog::NULL
+        )
+        b = w.balance(Eth::Key.new(priv: JEFF).address.to_s)
+        assert_equal(123_000, b)
+      end
+    end
   end
 
   def test_sends_payment
@@ -88,6 +135,15 @@ class TestWallet < Minitest::Test
 
   private
 
+  def wait_for(port)
+    loop do
+      break if Typhoeus::Request.get("http://localhost:#{port}").code == 200
+    rescue Errno::ECONNREFUSED
+      sleep(0.1)
+      retry
+    end
+  end
+
   def env(var)
     key = ENV.fetch(var)
     skip("The #{var} environment variable is not set") if key.nil?
@@ -103,7 +159,7 @@ class TestWallet < Minitest::Test
     end.sample
   end
 
-  def sepolia
+  def testnet
     [
       "https://sepolia.infura.io/v3/#{env('INFURA_KEY')}",
       "https://go.getblock.io/#{env('GETBLOCK_SEPOILA_KEY')}"
