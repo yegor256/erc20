@@ -78,12 +78,13 @@ class TestWallet < Minitest::Test
       donce(
         home: File.join(__dir__, '../../hardhat'),
         ports: { port => 8545 },
-        build_args: { 'PORT' => port },
         command: 'npx hardhat node',
-        log: Loog::VERBOSE
+        log: Loog::NULL
       ) do
         wait_for(port)
         cmd = [
+          '(cat hardhat.config.js)',
+          '(ls -al)',
           '(npx hardhat ignition deploy ./ignition/modules/Foo.ts --network foo)',
           '(npx hardhat ignition deployments | tail -1 > /tmp/deployment.txt)',
           '(npx hardhat ignition status "$(cat /tmp/deployment.txt)" | tail -1 | cut -d" " -f3)'
@@ -91,6 +92,7 @@ class TestWallet < Minitest::Test
         contract = donce(
           home: File.join(__dir__, '../../hardhat'),
           command: "/bin/bash -c #{Shellwords.escape(cmd)}",
+          build_args: { 'PORT' => port },
           log: Loog::NULL,
           root: true
         ).split("\n").last
