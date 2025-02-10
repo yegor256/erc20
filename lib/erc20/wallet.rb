@@ -132,6 +132,7 @@ class ERC20::Wallet
         }
         ws.send(msg.to_json)
         connected.append(1)
+        log.debug("Subscribed to #{addresses.count} addresses")
       end
       ws.on(:message) do |msg|
         data =
@@ -142,7 +143,6 @@ class ERC20::Wallet
           end
         if data['method'] == 'eth_subscription' && data.dig('params', 'result')
           event = data['params']['result']
-          log.debug("New transaction from: #{event['address']}")
           unless raw
             event = {
               amount: event['data'].to_i(16),
@@ -150,6 +150,7 @@ class ERC20::Wallet
               to: "0x#{event['topics'][2][26..].downcase}"
             }
           end
+          log.debug("New event arrived from #{event['address']}")
           yield event
         end
       end
