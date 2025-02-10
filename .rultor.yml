@@ -29,7 +29,7 @@ release:
   pre: false
   script: |-
     [[ "${tag}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit -1
-    bundle exec rake
+    DONCE_SUDO=true bundle exec rake
     rm -rf *.gem
     sed -i "s/0\.0\.0/${tag}/g" lib/erc20.rb
     git add lib/erc20.rb
@@ -39,4 +39,4 @@ release:
     gem push *.gem --config-file ../rubygems.yml
 merge:
   script: |-
-    bundle exec rake
+    DONCE_SUDO=true bundle exec rake

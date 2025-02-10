@@ -130,7 +130,7 @@ class TestWallet < Minitest::Test
   end
 
   def env(var)
-    key = ENV.fetch(var)
+    key = ENV.fetch(var, nil)
     skip("The #{var} environment variable is not set") if key.nil?
     key
   end
