@@ -22,6 +22,7 @@
 
 require 'eth'
 require 'jsonrpc/client'
+require 'websocket-client-simple'
 require_relative '../erc20'
 
 # A wallet.
@@ -55,7 +56,7 @@ class ERC20::Wallet
     func = '70a08231' # balanceOf
     padded = "000000000000000000000000#{hex[2..].downcase}"
     data = "0x#{func}#{padded}"
-    r = client.eth_call({ to: @contract, data: data }, 'latest')
+    r = jsonrpc.eth_call({ to: @contract, data: data }, 'latest')
     r[2..].to_i(16)
   end
 
@@ -76,7 +77,7 @@ class ERC20::Wallet
     data = "0x#{func}#{to_padded}#{amt_padded}"
     key = Eth::Key.new(priv: priv)
     from = key.address
-    nonce = client.eth_getTransactionCount(from, 'pending').to_i(16)
+    nonce = jsonrpc.eth_getTransactionCount(from, 'pending').to_i(16)
     tx = Eth::Tx.new(
       {
         nonce:,
@@ -89,7 +90,7 @@ class ERC20::Wallet
       }
     )
     tx.sign(key)
-    client.eth_sendRawTransaction("0x#{tx.hex}")
+    jsonrpc.eth_sendRawTransaction("0x#{tx.hex}")
   end
 
   # Wait for incoming transactions and let the block know when they
@@ -103,16 +104,16 @@ class ERC20::Wallet
 
   private
 
-  def client
+  def jsonrpc
     JSONRPC.logger = @log
     JSONRPC::Client.new(@rpc)
   end
 
   def gas_estimate(from, data)
-    client.eth_estimateGas({ from:, to: @contract, data: }, 'latest').to_i(16)
+    jsonrpc.eth_estimateGas({ from:, to: @contract, data: }, 'latest').to_i(16)
   end
 
   def gas_best_price
-    client.eth_getBlockByNumber('latest', false)['baseFeePerGas'].to_i(16)
+    jsonrpc.eth_getBlockByNumber('latest', false)['baseFeePerGas'].to_i(16)
   end
 end

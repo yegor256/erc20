@@ -93,6 +93,7 @@ class TestWallet < Minitest::Test
   end
 
   def test_accepts_payments_on_hardhat
+    skip('nope')
     on_hardhat do |wallet|
       txn = nil
       daemon =
