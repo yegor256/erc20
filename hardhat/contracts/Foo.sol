@@ -26,8 +26,8 @@ contract Foo {
     constructor() {
         owner = msg.sender;
         _mint(owner, 100000);
-        _mint(address(bytes20(bytes("0xd5fF1bFCDE7A03Da61ad229d962c74F1eA2f16A5"))), 100000);
-        _mint(address(bytes20(bytes("0xd7a63Ac9DD3d7878bc042A4bADA214EE4aff8c85"))), 100000);
+        _mint(0xd5fF1bFCDE7A03Da61ad229d962c74F1eA2f16A5, 123000); // Jeff
+        _mint(0xd7a63Ac9DD3d7878bc042A4bADA214EE4aff8c85, 456000); // Walter
     }
 
     function balanceOf(address account) external view returns (uint256) {

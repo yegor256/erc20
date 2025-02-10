@@ -73,25 +73,13 @@ class TestWallet < Minitest::Test
     assert_predicate(b, :positive?)
   end
 
-  # def test_checks_here
-  #   RandomPort::Pool::SINGLETON.acquire do |port|
-  #     w = ERC20::Wallet.new(
-  #       contract: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
-  #       rpc: "http://localhost:8545",
-  #       log: Loog::VERBOSE
-  #     )
-  #     b = w.balance(Eth::Key.new(priv: JEFF).address.to_s)
-  #     assert_equal(11000, b)
-  #   end
-  # end
-
   def test_checks_balance_on_hardhat
     RandomPort::Pool::SINGLETON.acquire do |port|
       donce(
         home: File.join(__dir__, '../../hardhat'),
         ports: { port => 8545 },
         command: 'npx hardhat node',
-        log: Loog::VERBOSE
+        log: Loog::NULL
       ) do |_|
         wait_for(port)
         cmd = [
@@ -102,16 +90,16 @@ class TestWallet < Minitest::Test
         contract = donce(
           home: File.join(__dir__, '../../hardhat'),
           command: "/bin/bash -c #{Shellwords.escape(cmd)}",
-          log: Loog::VERBOSE,
+          log: Loog::NULL,
           root: true
         ).split("\n").last
         w = ERC20::Wallet.new(
           contract:,
           rpc: "http://localhost:#{port}",
-          log: Loog::VERBOSE
+          log: Loog::NULL
         )
         b = w.balance(Eth::Key.new(priv: JEFF).address.to_s)
-        assert_equal(11000, b)
+        assert_equal(123_000, b)
       end
     end
   end
