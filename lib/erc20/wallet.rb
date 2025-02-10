@@ -22,6 +22,7 @@
 
 require 'eth'
 require 'jsonrpc/client'
+require 'loog'
 require 'websocket-client-simple'
 require_relative '../erc20'
 
@@ -41,9 +42,10 @@ class ERC20::Wallet
   # @param [String] rpc The URL of Etherium JSON-RPC provider
   # @param [Integer] chain The ID of the chain (1 for mainnet)
   # @param [Object] log The destination for logs
-  def initialize(contract: USDT, rpc: '', chain: 1, log: $stdout)
+  def initialize(contract: USDT, rpc: nil, wss: nil, chain: 1, log: $stdout)
     @contract = contract
     @rpc = rpc
+    @wss = wss
     @log = log
     @chain = chain
   end
@@ -97,15 +99,55 @@ class ERC20::Wallet
   # arrive. It's a blocking call, it's better to run it in a separate
   # thread.
   #
-  # @param [Array<String>] _keys Private keys
-  def accept(_keys)
-    # do it
+  # @param [Array<String>] addresses Addresses to monitor
+  # @param [Array] ready When connected, TRUE will be added to this array
+  def accept(addresses, connected: [])
+    WebSocket::Client::Simple.connect(@wss) do |ws|
+      log = @log
+      contract = @contract
+      wss = @wss
+      ws.on(:open) do
+        log.debug("Connected to #{wss}")
+        msg = {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_subscribe',
+          params: [
+            'logs',
+            {
+              address: contract,
+              topics: [
+                '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+                nil,
+                addresses.map { |a| "0x000000000000000000000000#{a[2..-1]}" }
+              ]
+            }
+          ]
+        }
+        ws.send(msg.to_json)
+        connected.append(1)
+      end
+      ws.on(:message) do |msg|
+        data = JSON.parse(msg.data) rescue {}
+        if data['method'] == 'eth_subscription' && data.dig('params', 'result')
+          event = data['params']['result']
+          log.debug("New transaction from: #{event['address']}")
+          yield event
+        end
+      end
+      ws.on(:close) do |e|
+        log.debug("Disconnected from #{wss}")
+      end
+      ws.on(:error) do |e|
+        log.debug("Error at #{wss}: #{e}")
+      end
+    end
   end
 
   private
 
   def jsonrpc
-    JSONRPC.logger = @log
+    JSONRPC.logger = Loog::NULL
     JSONRPC::Client.new(@rpc)
   end
 

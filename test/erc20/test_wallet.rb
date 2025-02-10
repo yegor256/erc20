@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+require 'backtrace'
 require 'donce'
 require 'eth'
 require 'loog'
@@ -93,35 +94,48 @@ class TestWallet < Minitest::Test
   end
 
   def test_accepts_payments_on_hardhat
-    skip('nope')
+    walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
+    jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
     on_hardhat do |wallet|
-      txn = nil
+      connected = []
+      event = nil
       daemon =
         Thread.new do
-          wallet.accept([WALTER]) do |t|
-            txn = t
+          wallet.accept([walter, jeff], connected:) do |e|
+            event = e
           end
+        rescue StandardError => e
+          puts Backtrace.new(e).to_s
         end
-      to = Eth::Key.new(priv: WALTER).address.to_s
+      wait_for { !connected.empty? }
       sum = 77_000
-      wallet.pay(JEFF, to, sum)
+      wallet.pay(JEFF, walter, sum)
+      wait_for { !event.nil? }
+      daemon.kill
       daemon.join(30)
-      refute_nil(txn)
-      assert_equal(sum, txn[:amount])
-      assert_equal(Eth::Key.new(priv: JEFF).address.to_s, txn[:from])
-      assert_equal(to, txn[:address])
+      assert_equal(sum, event['data'].to_i(16))
+      from = "0x#{event['topics'][1][26..-1].downcase}"
+      assert_equal(jeff, from)
+      to = "0x#{event['topics'][2][26..-1].downcase}"
+      assert_equal(walter, to)
     end
   end
 
   private
 
-  def wait_for(port)
+  def wait_for
+    start = Time.now
     loop do
-      break if Typhoeus::Request.get("http://localhost:#{port}").code == 200
-    rescue Errno::ECONNREFUSED
       sleep(0.1)
+      break if yield
+      raise 'timeout' if Time.now - start > 15
+    rescue Errno::ECONNREFUSED
       retry
     end
+  end
+
+  def wait_for_port(port)
+    wait_for { Typhoeus::Request.get("http://localhost:#{port}").code == 200 }
   end
 
   def env(var)
@@ -156,7 +170,7 @@ class TestWallet < Minitest::Test
         command: 'npx hardhat node',
         log: Loog::NULL
       ) do
-        wait_for(port)
+        wait_for_port(port)
         cmd = [
           '(cat hardhat.config.js)',
           '(ls -al)',
@@ -170,9 +184,11 @@ class TestWallet < Minitest::Test
           log: Loog::NULL,
           root: true
         ).split("\n").last
+        p contract
         wallet = ERC20::Wallet.new(
           contract:, chain: 4242,
           rpc: "http://localhost:#{port}",
+          wss: "ws://localhost:#{port}",
           log: Loog::NULL
         )
         yield wallet

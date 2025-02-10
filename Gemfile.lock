@@ -5,6 +5,7 @@ PATH
       backtrace (> 0)
       eth (~> 0.4)
       jsonrpc-client (> 0)
+      loog (> 0)
       tago (> 0)
       websocket-client-simple (> 0)
 
@@ -40,6 +41,8 @@ GEM
       securerandom (>= 0.3)
       tzinfo (~> 2.0, >= 2.0.5)
       uri (>= 0.13.1)
+    always (0.0.5)
+      concurrent-ruby (~> 1.1)
     ansi (1.5.0)
     ast (2.4.2)
     backtrace (0.4.0)
@@ -270,6 +273,8 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  always (> 0)
+  backtrace (> 0)
   donce (> 0)
   erc20!
   loog (> 0)
