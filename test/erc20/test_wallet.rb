@@ -79,7 +79,7 @@ class TestWallet < Minitest::Test
         home: File.join(__dir__, '../../hardhat'),
         ports: { port => 8545 },
         command: 'npx hardhat node',
-        log: Loog::VERBOSE
+        log: Loog::NULL
       ) do
         wait_for(port)
         cmd = [
@@ -93,7 +93,7 @@ class TestWallet < Minitest::Test
           home: File.join(__dir__, '../../hardhat'),
           command: "/bin/bash -c #{Shellwords.escape(cmd)}",
           build_args: { 'HOST' => donce_host, 'PORT' => port },
-          log: Loog::VERBOSE,
+          log: Loog::NULL,
           root: true
         ).split("\n").last
         w = ERC20::Wallet.new(
