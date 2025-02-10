@@ -33,6 +33,10 @@ jobs:
         os: [ubuntu-24.04]
         ruby: [3.3]
     runs-on: ${{ matrix.os }}
+    env:
+      INFURA_KEY: ${{ secrets.INFURA_KEY }}
+      GETBLOCK_KEY: ${{ secrets.GETBLOCK_KEY }}
+      GETBLOCK_SEPOILA_KEY: ${{ secrets.GETBLOCK_SEPOILA_KEY }}
     steps:
       - uses: actions/checkout@v4
       - run: |
