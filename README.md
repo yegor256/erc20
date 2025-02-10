@@ -22,8 +22,8 @@ as simple as they can be, if you have a provider of
 require 'erc20'
 w = ERC20::Wallet.new(
   contract: ERC20::Wallet.USDT, # hex of it
-  rpc: 'https://mainnet.infura.io/v3/<your-key>',
-  wss: 'wss://mainnet.infura.io/v3/<your-key>',
+  host: 'mainnet.infura.io',
+  path: '/v3/<your-key>',
   log: $stdout
 )
 

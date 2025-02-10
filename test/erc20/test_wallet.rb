@@ -62,6 +62,7 @@ class TestWallet < Minitest::Test
   def test_fails_with_invalid_infura_key
     w = ERC20::Wallet.new(
       rpc: 'https://mainnet.infura.io/v3/invalid-key-here',
+      wss: 'https://mainnet.infura.io/v3/another-invalid-key-here',
       log: Loog::NULL
     )
     assert_raises(StandardError) { w.balance(STABLE_ADDRESS) }
@@ -146,8 +147,8 @@ class TestWallet < Minitest::Test
     [
       "https://mainnet.infura.io/v3/#{env('INFURA_KEY')}",
       "https://go.getblock.io/#{env('GETBLOCK_KEY')}"
-    ].map do |rpc|
-      ERC20::Wallet.new(rpc:, log: Loog::NULL)
+    ].map do |url|
+      ERC20::Wallet.new(rpc: url, wss: url, log: Loog::NULL)
     end.sample
   end
 
@@ -155,8 +156,8 @@ class TestWallet < Minitest::Test
     [
       "https://sepolia.infura.io/v3/#{env('INFURA_KEY')}",
       "https://go.getblock.io/#{env('GETBLOCK_SEPOILA_KEY')}"
-    ].map do |rpc|
-      ERC20::Wallet.new(rpc:, log: Loog::NULL)
+    ].map do |url|
+      ERC20::Wallet.new(rpc: url, wss: url, log: Loog::NULL)
     end.sample
   end
 
@@ -184,8 +185,7 @@ class TestWallet < Minitest::Test
         ).split("\n").last
         wallet = ERC20::Wallet.new(
           contract:, chain: 4242,
-          rpc: "http://localhost:#{port}",
-          wss: "ws://localhost:#{port}",
+          host: 'localhost', port:, path: '/', ssl: false,
           log: Loog::NULL
         )
         yield wallet

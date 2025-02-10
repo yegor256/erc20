@@ -41,11 +41,28 @@ class ERC20::Wallet
   # @param [String] contract Hex of the contract in Etherium
   # @param [String] rpc The URL of Etherium JSON-RPC provider
   # @param [Integer] chain The ID of the chain (1 for mainnet)
+  # @param [String] host The host to connect to
+  # @param [Integer] port TCP port to use
+  # @param [String] path The path in the connection URL
+  # @param [Boolean] ssl Should we use SSL (for https and wss)
   # @param [Object] log The destination for logs
-  def initialize(contract: USDT, rpc: nil, wss: nil, chain: 1, log: $stdout)
+  def initialize(contract: USDT, rpc: nil, wss: nil, chain: 1, log: $stdout,
+                 host: nil, port: 443, path: '/', ssl: true)
     @contract = contract
-    @rpc = rpc
-    @wss = wss
+    raise 'Use either host or rpc' if rpc && host
+    raise 'Use either host or wss' if wss && host
+    if rpc
+      @rpc = rpc
+    else
+      raise 'Either rpc or host+port+path are required' unless host && port && path
+      @rpc = "http#{ssl ? 's' : ''}://#{host}:#{port}#{path}"
+    end
+    if wss
+      @wss = wss
+    else
+      raise 'Either wss or host+port+path are required' unless host && port && path
+      @wss = "http#{ssl ? 's' : ''}://#{host}:#{port}#{path}"
+    end
     @log = log
     @chain = chain
   end
