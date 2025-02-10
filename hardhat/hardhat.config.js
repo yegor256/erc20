@@ -26,7 +26,19 @@ module.exports = {
   solidity: "0.8.28",
   defaultNetwork: "foo",
   networks: {
+    hardhat: {
+      chainId: 4242,
+      gas: 10,
+      gasPrice: 4,
+      maxFeePerGas: 100,
+      maxPriorityFeePerGas: 100,
+      initialBaseFeePerGas: 100,
+      accounts: {
+        count: 1
+      }
+    },
     foo: {
+      chainId: 4242,
       url: "http://HOST:PORT"
     }
   }

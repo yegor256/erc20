@@ -35,5 +35,5 @@ require 'minitest/reporters'
 Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
 
 # To make tests retry on failure:
-require 'minitest/retry'
-Minitest::Retry.use!(methods_to_skip: [])
+# require 'minitest/retry'
+# Minitest::Retry.use!(methods_to_skip: [])

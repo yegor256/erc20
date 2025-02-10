@@ -26,8 +26,8 @@ contract Foo {
     constructor() {
         owner = msg.sender;
         _mint(owner, 100000);
-        _mint(0xd5fF1bFCDE7A03Da61ad229d962c74F1eA2f16A5, 123000); // Jeff
-        _mint(0xd7a63Ac9DD3d7878bc042A4bADA214EE4aff8c85, 456000); // Walter
+        _mint(0xd5fF1bFCDE7A03Da61ad229d962c74F1eA2f16A5, 123000000000); // Jeff
+        _mint(0xd7a63Ac9DD3d7878bc042A4bADA214EE4aff8c85, 456000000000); // Walter
     }
 
     function balanceOf(address account) external view returns (uint256) {
@@ -55,7 +55,6 @@ contract Foo {
     ) external returns (bool) {
         uint256 currentAllowance = _allowances[sender][msg.sender];
         require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
-
         _approve(sender, msg.sender, currentAllowance - amount);
         _transfer(sender, recipient, amount);
 
@@ -71,10 +70,8 @@ contract Foo {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
         require(_balances[sender] >= amount, "ERC20: transfer amount exceeds balance");
-
         _balances[sender] -= amount;
         _balances[recipient] += amount;
-
         emit Transfer(sender, recipient, amount);
     }
 
@@ -85,14 +82,12 @@ contract Foo {
     ) internal {
         require(tokenOwner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
-
         _allowances[tokenOwner][spender] = amount;
         emit Approval(tokenOwner, spender, amount);
     }
 
     function _mint(address account, uint256 amount) internal {
         require(account != address(0), "ERC20: mint to the zero address");
-
         totalSupply += amount;
         _balances[account] += amount;
         emit Transfer(address(0), account, amount);
