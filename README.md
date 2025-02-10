@@ -20,7 +20,8 @@ as simple as they can be, if you have a provider of
 # Create a wallet:
 w = ERC20::Wallet.new(
   contract: ERC20::Wallet.USDT, # hex of it
-  host: 'https://mainnet.infura.io/v3/<your-key>',
+  rpc: 'https://mainnet.infura.io/v3/<your-key>',
+  wss: 'wss://mainnet.infura.io/v3/<your-key>',
   log: $stdout
 )
 
