@@ -36,9 +36,9 @@ txn = w.pay(private_key, to_address, amount)
 # Stay waiting, and trigger the block when transactions arrive:
 addresses = ['0x...', '0x...']
 w.accept(addresses) do |event|
-  puts event['data'].to_i(16)) # how much
-  puts "0x#{event['topics'][1][26..]}" # who sent the payment
-  puts "0x#{event['topics'][2][26..]}" # who was the receiver
+  puts event[:amount] # how much
+  puts event[:from] # who sent the payment
+  puts event[:to] # who was the receiver
 end
 ```
 
