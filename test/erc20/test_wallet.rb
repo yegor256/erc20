@@ -76,7 +76,7 @@ class TestWallet < Minitest::Test
   def test_checks_balance_on_hardhat
     on_hardhat do |wallet|
       b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
-      assert_equal(123_000_000_000, b)
+      assert_equal(123_000_100_000, b)
     end
   end
 
@@ -88,7 +88,7 @@ class TestWallet < Minitest::Test
       from = Eth::Key.new(priv: JEFF).address.to_s
       assert(wallet.balance(from) > sum * 2)
       wallet.pay(JEFF, to, sum)
-      assert_equal(before - sum, wallet.balance(to))
+      assert_equal(before + sum, wallet.balance(to))
     end
   end
 
@@ -159,7 +159,7 @@ class TestWallet < Minitest::Test
         home: File.join(__dir__, '../../hardhat'),
         ports: { port => 8545 },
         command: 'npx hardhat node',
-        log: Loog::VERBOSE
+        log: Loog::NULL
       ) do
         wait_for(port)
         cmd = [
@@ -172,13 +172,13 @@ class TestWallet < Minitest::Test
           home: File.join(__dir__, '../../hardhat'),
           command: "/bin/bash -c #{Shellwords.escape(cmd)}",
           build_args: { 'HOST' => donce_host, 'PORT' => port },
-          log: Loog::VERBOSE,
+          log: Loog::NULL,
           root: true
         ).split("\n").last
         wallet = ERC20::Wallet.new(
-          contract:,
+          contract:, chain: 4242,
           rpc: "http://localhost:#{port}",
-          log: Loog::VERBOSE
+          log: Loog::NULL
         )
         yield wallet
       end

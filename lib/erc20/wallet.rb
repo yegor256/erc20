@@ -38,11 +38,13 @@ class ERC20::Wallet
   # Constructor.
   # @param [String] contract Hex of the contract in Etherium
   # @param [String] rpc The URL of Etherium JSON-RPC provider
+  # @param [Integer] chain The ID of the chain (1 for mainnet)
   # @param [Object] log The destination for logs
-  def initialize(contract: USDT, rpc: '', log: $stdout)
+  def initialize(contract: USDT, rpc: '', chain: 1, log: $stdout)
     @contract = contract
     @rpc = rpc
     @log = log
+    @chain = chain
   end
 
   # Get balance of a public address.
@@ -73,16 +75,15 @@ class ERC20::Wallet
     key = Eth::Key.new(priv: priv)
     from = key.address
     nonce = client.eth_getTransactionCount(from, 'pending').to_i(16)
-    gas = client.eth_estimateGas({ from:, to: @contract, data: data}, 'latest').to_i(16)
-    @log.info("Gas: #{gas}")
+    gas = client.eth_estimateGas({ from:, to: @contract, data: data }, 'latest').to_i(16)
     tx = Eth::Tx.new({
       nonce:,
-      gas_price: 1000,
-      gas_limit: gas * 100,
+      gas_price: 99,
+      gas_limit: gas,
       to: @contract,
       value: 0,
       data: data,
-      chain_id: 4242
+      chain_id: @chain
     })
     tx.sign(key)
     client.eth_sendRawTransaction("0x" + tx.hex)
