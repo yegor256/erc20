@@ -23,7 +23,7 @@ require 'erc20'
 w = ERC20::Wallet.new(
   contract: ERC20::Wallet.USDT, # hex of it
   host: 'mainnet.infura.io',
-  path: '/v3/<your-key>',
+  path: '/v3/<your-infura-key>',
   log: $stdout
 )
 
