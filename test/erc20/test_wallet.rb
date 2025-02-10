@@ -92,30 +92,24 @@ class TestWallet < Minitest::Test
     end
   end
 
-  def test_sends_payment
-    skip('does not work yet')
-    w = ERC20::Wallet.new(log: Loog::VERBOSE)
-    sender = Eth::Key.new
-    receiver = Eth::Key.new
-    txn = w.pay(sender.private_hex, receiver.public_hex, 100)
-    refute_nil(txn)
-  end
-
-  def test_accepts_payments_to_my_addresses
-    skip('does not work yet')
-    receiver = Eth::Key.new
-    w = ERC20::Wallet.new(log: Loog::VERBOSE)
-    txn = nil
-    daemon =
-      Thread.new do
-        w.accept([receiver.private_hex]) do |t|
-          txn = t
+  def test_accepts_payments_on_hardhat
+    on_hardhat do |wallet|
+      txn = nil
+      daemon =
+        Thread.new do
+          wallet.accept([WALTER]) do |t|
+            txn = t
+          end
         end
-      end
-    sender = Eth::Key.new
-    w.pay(sender.private_hex, receiver.public_hex, 100)
-    daemon.join(30)
-    # refute_nil(txn)
+      to = Eth::Key.new(priv: WALTER).address.to_s
+      sum = 77_000
+      wallet.pay(JEFF, to, sum)
+      daemon.join(30)
+      refute_nil(txn)
+      assert_equal(sum, txn[:amount])
+      assert_equal(Eth::Key.new(priv: JEFF).address.to_s, txn[:from])
+      assert_equal(to, txn[:address])
+    end
   end
 
   private
