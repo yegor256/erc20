@@ -78,7 +78,7 @@ class TestWallet < Minitest::Test
       donce(
         home: File.join(__dir__, '../../hardhat'),
         ports: { port => 8545 },
-        args: "--build-arg PORT=#{port}",
+        build_args: { 'PORT' => port },
         command: 'npx hardhat node',
         log: Loog::VERBOSE
       ) do

@@ -51,7 +51,7 @@ GEM
     date (3.4.1)
     diff-lcs (1.5.1)
     docile (1.4.1)
-    donce (0.0.5)
+    donce (0.1.0)
       backtrace (> 0)
       os (> 0)
       qbash (> 0)
