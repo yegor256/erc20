@@ -31,12 +31,11 @@ usdt = w.balance(address)
 txn = w.pay(private_key, to_address, amount)
 
 # Stay waiting, and trigger the block when transactions arrive:
-private_keys = ['0x...', '0x...']
-w.accept(private_keys) do |txn|
-  puts txn[:time] # when did it happen
-  puts txn[:from] # sending address hex
-  puts txn[:to] # receiving address hex
-  puts txn[:amount] # how much
+addresses = ['0x...', '0x...']
+w.accept(addresses) do |event|
+  puts event['data'].to_i(16)) # how much
+  puts "0x#{event['topics'][1][26..]}" # who sent the payment
+  puts "0x#{event['topics'][2][26..]}" # who was the receiver
 end
 ```
 
@@ -47,7 +46,7 @@ require 'eth'
 key = Eth::Key.new.private_hex
 ```
 
-To get public key from private one:
+To get address from private one:
 
 ```ruby
 public_hex = Eth::Key.new(priv: key).address
