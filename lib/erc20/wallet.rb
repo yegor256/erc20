@@ -119,7 +119,7 @@ class ERC20::Wallet
               topics: [
                 '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
                 nil,
-                addresses.map { |a| "0x000000000000000000000000#{a[2..-1]}" }
+                addresses.map { |a| "0x000000000000000000000000#{a[2..]}" }
               ]
             }
           ]
@@ -128,14 +128,19 @@ class ERC20::Wallet
         connected.append(1)
       end
       ws.on(:message) do |msg|
-        data = JSON.parse(msg.data) rescue {}
+        data =
+          begin
+            JSON.parse(msg.data)
+          rescue StandardError
+            {}
+          end
         if data['method'] == 'eth_subscription' && data.dig('params', 'result')
           event = data['params']['result']
           log.debug("New transaction from: #{event['address']}")
           yield event
         end
       end
-      ws.on(:close) do |e|
+      ws.on(:close) do |_e|
         log.debug("Disconnected from #{wss}")
       end
       ws.on(:error) do |e|

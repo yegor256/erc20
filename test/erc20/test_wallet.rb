@@ -105,7 +105,7 @@ class TestWallet < Minitest::Test
             event = e
           end
         rescue StandardError => e
-          puts Backtrace.new(e).to_s
+          puts Backtrace.new(e)
         end
       wait_for { !connected.empty? }
       sum = 77_000
@@ -114,9 +114,9 @@ class TestWallet < Minitest::Test
       daemon.kill
       daemon.join(30)
       assert_equal(sum, event['data'].to_i(16))
-      from = "0x#{event['topics'][1][26..-1].downcase}"
+      from = "0x#{event['topics'][1][26..].downcase}"
       assert_equal(jeff, from)
-      to = "0x#{event['topics'][2][26..-1].downcase}"
+      to = "0x#{event['topics'][2][26..].downcase}"
       assert_equal(walter, to)
     end
   end
@@ -184,7 +184,6 @@ class TestWallet < Minitest::Test
           log: Loog::NULL,
           root: true
         ).split("\n").last
-        p contract
         wallet = ERC20::Wallet.new(
           contract:, chain: 4242,
           rpc: "http://localhost:#{port}",
