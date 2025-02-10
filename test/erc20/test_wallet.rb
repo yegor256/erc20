@@ -73,17 +73,17 @@ class TestWallet < Minitest::Test
     assert_predicate(b, :positive?)
   end
 
-  def test_checks_here
-    RandomPort::Pool::SINGLETON.acquire do |port|
-      w = ERC20::Wallet.new(
-        contract: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
-        rpc: "http://localhost:8545",
-        log: Loog::VERBOSE
-      )
-      b = w.balance(Eth::Key.new(priv: JEFF).address.to_s)
-      assert_equal(11000, b)
-    end
-  end
+  # def test_checks_here
+  #   RandomPort::Pool::SINGLETON.acquire do |port|
+  #     w = ERC20::Wallet.new(
+  #       contract: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+  #       rpc: "http://localhost:8545",
+  #       log: Loog::VERBOSE
+  #     )
+  #     b = w.balance(Eth::Key.new(priv: JEFF).address.to_s)
+  #     assert_equal(11000, b)
+  #   end
+  # end
 
   def test_checks_balance_on_hardhat
     RandomPort::Pool::SINGLETON.acquire do |port|

@@ -24,6 +24,7 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'donce', '>0', require: false
+gem 'eth', '>0', require: false
 gem 'loog', '>0', require: false
 gem 'minitest', '5.25.4', require: false
 gem 'minitest-reporters', '1.7.1', require: false

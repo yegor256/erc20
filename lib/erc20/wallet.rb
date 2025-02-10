@@ -52,9 +52,7 @@ class ERC20::Wallet
     func = '70a08231' # balanceOf
     padded = "000000000000000000000000#{hex[2..].downcase}"
     data = "0x#{func}#{padded}"
-    JSONRPC.logger = @log
-    c = JSONRPC::Client.new(@rpc)
-    r = c.eth_call({ to: @contract, data: data }, 'latest')
+    r = client.eth_call({ to: @contract, data: data }, 'latest')
     r[2..].to_i(16)
   end
 
@@ -76,5 +74,12 @@ class ERC20::Wallet
   # @param [Array<String>] _keys Private keys
   def accept(_keys)
     # do it
+  end
+
+  private
+
+  def client
+    JSONRPC.logger = @log
+    JSONRPC::Client.new(@rpc)
   end
 end
