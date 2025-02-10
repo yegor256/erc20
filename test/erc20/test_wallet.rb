@@ -92,7 +92,7 @@ class TestWallet < Minitest::Test
         contract = donce(
           home: File.join(__dir__, '../../hardhat'),
           command: "/bin/bash -c #{Shellwords.escape(cmd)}",
-          build_args: { 'PORT' => port },
+          build_args: { 'HOST' => donce_host, 'PORT' => port },
           log: Loog::VERBOSE,
           root: true
         ).split("\n").last

@@ -27,7 +27,7 @@ module.exports = {
   defaultNetwork: "foo",
   networks: {
     foo: {
-      url: "http://host.docker.internal:PORT"
+      url: "http://HOST:PORT"
     }
   }
 };
