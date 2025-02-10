@@ -6,7 +6,6 @@ PATH
       eth (~> 0.4)
       jsonrpc-client (> 0)
       loog (> 0)
-      tago (> 0)
       websocket-client-simple (> 0)
 
 GEM

@@ -59,7 +59,9 @@ class ERC20::Wallet
     padded = "000000000000000000000000#{hex[2..].downcase}"
     data = "0x#{func}#{padded}"
     r = jsonrpc.eth_call({ to: @contract, data: data }, 'latest')
-    r[2..].to_i(16)
+    b = r[2..].to_i(16)
+    @log.debug("Balance of #{hex} is #{b}")
+    b
   end
 
   # Send a single payment from a private address to a public one.
@@ -92,7 +94,10 @@ class ERC20::Wallet
       }
     )
     tx.sign(key)
-    jsonrpc.eth_sendRawTransaction("0x#{tx.hex}")
+    hex = "0x#{tx.hex}"
+    jsonrpc.eth_sendRawTransaction(hex)
+    @log.debug("Sent #{amount} from #{from} to #{address}: #{hex}")
+    hex
   end
 
   # Wait for incoming transactions and let the block know when they
