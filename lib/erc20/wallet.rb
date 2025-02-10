@@ -68,25 +68,27 @@ class ERC20::Wallet
   def pay(priv, address, amount)
     func = 'a9059cbb' # transfer(address,uint256)
     to_clean = address.downcase.sub(/^0x/, '')
-    to_padded = '0' * (64 - to_clean.size) + to_clean
+    to_padded = ('0' * (64 - to_clean.size)) + to_clean
     amt_hex = amount.to_s(16)
-    amt_padded = '0' * (64 - amt_hex.size) + amt_hex
+    amt_padded = ('0' * (64 - amt_hex.size)) + amt_hex
     data = "0x#{func}#{to_padded}#{amt_padded}"
     key = Eth::Key.new(priv: priv)
     from = key.address
     nonce = client.eth_getTransactionCount(from, 'pending').to_i(16)
     gas = client.eth_estimateGas({ from:, to: @contract, data: data }, 'latest').to_i(16)
-    tx = Eth::Tx.new({
-      nonce:,
-      gas_price: 99,
-      gas_limit: gas,
-      to: @contract,
-      value: 0,
-      data: data,
-      chain_id: @chain
-    })
+    tx = Eth::Tx.new(
+      {
+        nonce:,
+        gas_price: 99,
+        gas_limit: gas,
+        to: @contract,
+        value: 0,
+        data: data,
+        chain_id: @chain
+      }
+    )
     tx.sign(key)
-    client.eth_sendRawTransaction("0x" + tx.hex)
+    client.eth_sendRawTransaction("0x#{tx.hex}")
   end
 
   # Wait for incoming transactions and let the block know when they
