@@ -76,7 +76,19 @@ class TestWallet < Minitest::Test
   def test_checks_balance_on_hardhat
     on_hardhat do |wallet|
       b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
-      assert_equal(123_000, b)
+      assert_equal(123_000_100_000, b)
+    end
+  end
+
+  def test_pays_on_hardhat
+    on_hardhat do |wallet|
+      to = Eth::Key.new(priv: WALTER).address.to_s
+      before = wallet.balance(to)
+      sum = 42_000
+      from = Eth::Key.new(priv: JEFF).address.to_s
+      assert_operator(wallet.balance(from), :>, sum * 2)
+      wallet.pay(JEFF, to, sum)
+      assert_equal(before + sum, wallet.balance(to))
     end
   end
 
@@ -118,7 +130,7 @@ class TestWallet < Minitest::Test
   end
 
   def env(var)
-    key = ENV.fetch(var)
+    key = ENV.fetch(var, nil)
     skip("The #{var} environment variable is not set") if key.nil?
     key
   end
@@ -153,9 +165,8 @@ class TestWallet < Minitest::Test
         cmd = [
           '(cat hardhat.config.js)',
           '(ls -al)',
-          '(npx hardhat ignition deploy ./ignition/modules/Foo.ts --network foo)',
-          '(npx hardhat ignition deployments | tail -1 > /tmp/deployment.txt)',
-          '(npx hardhat ignition status "$(cat /tmp/deployment.txt)" | tail -1 | cut -d" " -f3)'
+          '(echo y | npx hardhat ignition deploy ./ignition/modules/Foo.ts --network foo --deployment-id foo)',
+          '(npx hardhat ignition status foo | tail -1 | cut -d" " -f3)'
         ].join(' && ')
         contract = donce(
           home: File.join(__dir__, '../../hardhat'),
@@ -165,7 +176,7 @@ class TestWallet < Minitest::Test
           root: true
         ).split("\n").last
         wallet = ERC20::Wallet.new(
-          contract:,
+          contract:, chain: 4242,
           rpc: "http://localhost:#{port}",
           log: Loog::NULL
         )

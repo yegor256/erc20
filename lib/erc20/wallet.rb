@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+require 'eth'
 require 'jsonrpc/client'
 require_relative '../erc20'
 
@@ -37,11 +38,13 @@ class ERC20::Wallet
   # Constructor.
   # @param [String] contract Hex of the contract in Etherium
   # @param [String] rpc The URL of Etherium JSON-RPC provider
+  # @param [Integer] chain The ID of the chain (1 for mainnet)
   # @param [Object] log The destination for logs
-  def initialize(contract: USDT, rpc: '', log: $stdout)
+  def initialize(contract: USDT, rpc: '', chain: 1, log: $stdout)
     @contract = contract
     @rpc = rpc
     @log = log
+    @chain = chain
   end
 
   # Get balance of a public address.
@@ -58,13 +61,34 @@ class ERC20::Wallet
 
   # Send a single payment from a private address to a public one.
   #
-  # @param [String] _sender Private key, in hex
-  # @param [String] _receiver Public key, in hex
-  # @param [Integer] _amount The amount to send
+  # @param [String] priv Private key, in hex
+  # @param [String] address Public key, in hex
+  # @param [Integer] amount The amount of ERC20 tokens to send
   # @return [String] Transaction hash
-  def pay(_sender, _receiver, _amount)
-    # do it
-    'abcdef'
+  def pay(priv, address, amount)
+    func = 'a9059cbb' # transfer(address,uint256)
+    to_clean = address.downcase.sub(/^0x/, '')
+    to_padded = ('0' * (64 - to_clean.size)) + to_clean
+    amt_hex = amount.to_s(16)
+    amt_padded = ('0' * (64 - amt_hex.size)) + amt_hex
+    data = "0x#{func}#{to_padded}#{amt_padded}"
+    key = Eth::Key.new(priv: priv)
+    from = key.address
+    nonce = client.eth_getTransactionCount(from, 'pending').to_i(16)
+    gas = client.eth_estimateGas({ from:, to: @contract, data: data }, 'latest').to_i(16)
+    tx = Eth::Tx.new(
+      {
+        nonce:,
+        gas_price: 99,
+        gas_limit: gas,
+        to: @contract,
+        value: 0,
+        data: data,
+        chain_id: @chain
+      }
+    )
+    tx.sign(key)
+    client.eth_sendRawTransaction("0x#{tx.hex}")
   end
 
   # Wait for incoming transactions and let the block know when they

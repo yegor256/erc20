@@ -3,6 +3,7 @@ PATH
   specs:
     erc20 (0.0.0)
       backtrace (> 0)
+      eth (~> 0.4)
       jsonrpc-client (> 0)
       tago (> 0)
 
@@ -262,7 +263,6 @@ PLATFORMS
 DEPENDENCIES
   donce (> 0)
   erc20!
-  eth (> 0)
   loog (> 0)
   minitest (= 5.25.4)
   minitest-reporters (= 1.7.1)
