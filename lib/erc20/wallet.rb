@@ -64,8 +64,10 @@ class ERC20::Wallet
   # @param [String] priv Private key, in hex
   # @param [String] address Public key, in hex
   # @param [Integer] amount The amount of ERC20 tokens to send
+  # @param [Integer] gas_limit How much gas you are ready to spend
+  # @param [Integer] gas_price How much gas you pay per computation unit
   # @return [String] Transaction hash
-  def pay(priv, address, amount)
+  def pay(priv, address, amount, gas_limit: nil, gas_price: nil)
     func = 'a9059cbb' # transfer(address,uint256)
     to_clean = address.downcase.sub(/^0x/, '')
     to_padded = ('0' * (64 - to_clean.size)) + to_clean
@@ -75,12 +77,11 @@ class ERC20::Wallet
     key = Eth::Key.new(priv: priv)
     from = key.address
     nonce = client.eth_getTransactionCount(from, 'pending').to_i(16)
-    gas = client.eth_estimateGas({ from:, to: @contract, data: data }, 'latest').to_i(16)
     tx = Eth::Tx.new(
       {
         nonce:,
-        gas_price: 99,
-        gas_limit: gas,
+        gas_price: gas_price || gas_best_price,
+        gas_limit: gas_limit || gas_estimate(from, data),
         to: @contract,
         value: 0,
         data: data,
@@ -105,5 +106,13 @@ class ERC20::Wallet
   def client
     JSONRPC.logger = @log
     JSONRPC::Client.new(@rpc)
+  end
+
+  def gas_estimate(from, data)
+    client.eth_estimateGas({ from:, to: @contract, data: }, 'latest').to_i(16)
+  end
+
+  def gas_best_price
+    client.eth_getBlockByNumber('latest', false)['baseFeePerGas'].to_i(16)
   end
 end
