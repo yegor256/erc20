@@ -101,7 +101,8 @@ class ERC20::Wallet
   #
   # @param [Array<String>] addresses Addresses to monitor
   # @param [Array] ready When connected, TRUE will be added to this array
-  def accept(addresses, connected: [])
+  # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
+  def accept(addresses, connected: [], raw: false)
     WebSocket::Client::Simple.connect(@wss) do |ws|
       log = @log
       contract = @contract
@@ -137,6 +138,13 @@ class ERC20::Wallet
         if data['method'] == 'eth_subscription' && data.dig('params', 'result')
           event = data['params']['result']
           log.debug("New transaction from: #{event['address']}")
+          unless raw
+            event = {
+              amount: event['data'].to_i(16),
+              from: "0x#{event['topics'][1][26..].downcase}",
+              to: "0x#{event['topics'][2][26..].downcase}"
+            }
+          end
           yield event
         end
       end

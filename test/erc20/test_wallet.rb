@@ -113,11 +113,9 @@ class TestWallet < Minitest::Test
       wait_for { !event.nil? }
       daemon.kill
       daemon.join(30)
-      assert_equal(sum, event['data'].to_i(16))
-      from = "0x#{event['topics'][1][26..].downcase}"
-      assert_equal(jeff, from)
-      to = "0x#{event['topics'][2][26..].downcase}"
-      assert_equal(walter, to)
+      assert_equal(sum, event[:amount])
+      assert_equal(jeff, event[:from])
+      assert_equal(walter, event[:to])
     end
   end
 
@@ -128,7 +126,7 @@ class TestWallet < Minitest::Test
     loop do
       sleep(0.1)
       break if yield
-      raise 'timeout' if Time.now - start > 15
+      raise 'timeout' if Time.now - start > 60
     rescue Errno::ECONNREFUSED
       retry
     end

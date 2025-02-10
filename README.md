@@ -11,13 +11,15 @@
 [![Hits-of-Code](https://hitsofcode.com/github/yegor256/erc20)](https://hitsofcode.com/view/github/yegor256/erc20)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yegor256/erc20/blob/master/LICENSE.txt)
 
-This small Ruby library makes manipulations with [Etherium] [ERC20] tokens
+This small Ruby [gem](https://rubygems.org/gems/erc20)
+makes manipulations with [Etherium] [ERC20] tokens
 as simple as they can be, if you have a provider of
 [JSON-RPC] and [WebSocket] Etherium APIs, for example
 [Infura], [GetBlock], or [Alchemy]:
 
 ```ruby
 # Create a wallet:
+require 'erc20'
 w = ERC20::Wallet.new(
   contract: ERC20::Wallet.USDT, # hex of it
   rpc: 'https://mainnet.infura.io/v3/<your-key>',
