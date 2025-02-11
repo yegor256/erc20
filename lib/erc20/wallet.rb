@@ -126,7 +126,7 @@ class ERC20::Wallet
     EM.run do
       u = url('ws')
       @log.debug("Connecting to #{u}...")
-      ws = Faye::WebSocket::Client.new(u)
+      ws = Faye::WebSocket::Client.new(u, [], proxy: @proxy ? { origin: @proxy } : {})
       log = @log
       contract = @contract
       ws.on(:open) do
@@ -176,7 +176,7 @@ class ERC20::Wallet
         log.debug("Disconnected from #{@host}")
       end
       ws.on(:error) do |e|
-        log.debug("Error at #{@host}: #{e}")
+        log.debug("Error at #{@host}: #{e.message}")
       end
     end
   end
