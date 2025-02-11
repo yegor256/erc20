@@ -149,22 +149,34 @@ class TestWallet < Minitest::Test
         root: true, log: loog
       ) do
         on_hardhat do |w|
-          faraday =
-            Faraday.new do |f|
-              f.adapter(Faraday.default_adapter)
-              f.proxy = {
-                uri: "http://localhost:#{proxy}",
-                user: 'jeffrey',
-                password: 'swordfish'
-              }
-            end
           wallet = ERC20::Wallet.new(
             contract: w.contract, chain: w.chain,
-            host: donce_host, port: w.port, path: w.path, ssl: w.ssl, faraday:,
+            host: donce_host, port: w.port, path: w.path, ssl: w.ssl,
+            proxy: "http://jeffrey:swordfish@localhost:#{proxy}",
             log: loog
           )
           b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
           assert_equal(123_000_100_000, b)
+        end
+      end
+    end
+  end
+
+  def test_checks_balance_via_proxy_on_mainnet
+    RandomPort::Pool::SINGLETON.acquire do |proxy|
+      donce(
+        image: 'yegor256/squid-proxy:latest',
+        ports: { proxy => 3128 },
+        env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' },
+        root: true, log: Loog::NULL
+      ) do
+        on_hardhat do
+          w = ERC20::Wallet.new(
+            host: 'mainnet.infura.io', path: "/v3/#{env('INFURA_KEY')}",
+            proxy: "http://jeffrey:swordfish@localhost:#{proxy}",
+            log: Loog::NULL
+          )
+          assert_equal(27_258_889, w.balance(STABLE))
         end
       end
     end
