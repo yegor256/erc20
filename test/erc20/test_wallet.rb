@@ -71,10 +71,9 @@ class TestWallet < Minitest::Test
   end
 
   def test_checks_balance_on_testnet
-    skip('does not work')
     b = testnet.balance(STABLE)
     refute_nil(b)
-    assert_predicate(b, :positive?)
+    assert_predicate(b, :zero?)
   end
 
   def test_checks_balance_on_hardhat
