@@ -61,8 +61,8 @@ class TestWallet < Minitest::Test
 
   def test_fails_with_invalid_infura_key
     w = ERC20::Wallet.new(
-      rpc: 'https://mainnet.infura.io/v3/invalid-key-here',
-      wss: 'https://mainnet.infura.io/v3/another-invalid-key-here',
+      host: 'mainnet.infura.io',
+      path: '/v3/invalid-key-here',
       log: Loog::NULL
     )
     assert_raises(StandardError) { w.balance(STABLE_ADDRESS) }
@@ -120,6 +120,22 @@ class TestWallet < Minitest::Test
     end
   end
 
+  def test_checks_balance_via_proxy
+    skip('wip')
+    RandomPort::Pool::SINGLETON.acquire do |proxy|
+      donce(
+        image: 'yegor256/squid-proxy:latest',
+        ports: { proxy => 3128 },
+        env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' }
+      ) do
+        on_hardhat do |wallet|
+          b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
+          assert_equal(123_000_100_000, b)
+        end
+      end
+    end
+  end
+
   private
 
   def wait_for
@@ -145,19 +161,19 @@ class TestWallet < Minitest::Test
 
   def mainnet
     [
-      "https://mainnet.infura.io/v3/#{env('INFURA_KEY')}",
-      "https://go.getblock.io/#{env('GETBLOCK_KEY')}"
-    ].map do |url|
-      ERC20::Wallet.new(rpc: url, wss: url, log: Loog::NULL)
+      { host: 'mainnet.infura.io', path: "/v3/#{env('INFURA_KEY')}" },
+      { host: 'go.getblock.io', path: "/#{env('GETBLOCK_KEY')}" }
+    ].map do |server|
+      ERC20::Wallet.new(host: server[:host], path: server[:path], log: Loog::NULL)
     end.sample
   end
 
   def testnet
     [
-      "https://sepolia.infura.io/v3/#{env('INFURA_KEY')}",
-      "https://go.getblock.io/#{env('GETBLOCK_SEPOILA_KEY')}"
-    ].map do |url|
-      ERC20::Wallet.new(rpc: url, wss: url, log: Loog::NULL)
+      { host: 'sepolia.infura.io', path: "/v3/#{env('INFURA_KEY')}" },
+      { host: 'go.getblock.io', path: "/#{env('GETBLOCK_SEPOILA_KEY')}" }
+    ].map do |server|
+      ERC20::Wallet.new(host: server[:host], path: server[:path], log: Loog::NULL)
     end.sample
   end
 
