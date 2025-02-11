@@ -25,13 +25,13 @@ require 'donce'
 require 'eth'
 require 'faraday'
 require 'loog'
+require 'minitest/autorun'
 require 'random-port'
 require 'shellwords'
 require 'typhoeus'
-require 'minitest/autorun'
-require_relative '../test__helper'
 require_relative '../../lib/erc20'
 require_relative '../../lib/erc20/wallet'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)

@@ -32,7 +32,8 @@ Gem::Specification.new do |s|
   s.summary = 'Sending and receiving ERC20 tokens in Etherium network'
   s.description =
     'A simple library for making ERC20 manipulations as easy as they' \
-    'can be for cryptocurrency newbies'
+    'can be for cryptocurrency newbies: checking balance, sending payments, ' \
+    'and monitoring addresses for incoming payments.'
   s.authors = ['Yegor Bugayenko']
   s.email = 'yegor256@gmail.com'
   s.homepage = 'http://github.com/yegor256/erc20.rb'
