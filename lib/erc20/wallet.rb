@@ -37,34 +37,29 @@ class ERC20::Wallet
   # Address of USDT contract.
   USDT = '0xdac17f958d2ee523a2206206994597c13d831ec7'
 
+  # These properties are read-only:
+  attr_reader :host, :port, :ssl, :chain, :contract, :path
+
   # Constructor.
   # @param [String] contract Hex of the contract in Etherium
-  # @param [String] rpc The URL of Etherium JSON-RPC provider
   # @param [Integer] chain The ID of the chain (1 for mainnet)
   # @param [String] host The host to connect to
   # @param [Integer] port TCP port to use
   # @param [String] path The path in the connection URL
   # @param [Boolean] ssl Should we use SSL (for https and wss)
+  # @param [Object] faraday Custom connection object, instance of +Faraday+
   # @param [Object] log The destination for logs
-  def initialize(contract: USDT, rpc: nil, wss: nil, chain: 1, log: $stdout,
-                 host: nil, port: 443, path: '/', ssl: true)
+  def initialize(contract: USDT, chain: 1, log: $stdout,
+                 host: nil, port: 443, path: '/', ssl: true,
+                 faraday: nil)
     @contract = contract
-    raise 'Use either host or rpc' if rpc && host
-    raise 'Use either host or wss' if wss && host
-    if rpc
-      @rpc = rpc
-    else
-      raise 'Either rpc or host+port+path are required' unless host && port && path
-      @rpc = "http#{ssl ? 's' : ''}://#{host}:#{port}#{path}"
-    end
-    if wss
-      @wss = wss
-    else
-      raise 'Either wss or host+port+path are required' unless host && port && path
-      @wss = "http#{ssl ? 's' : ''}://#{host}:#{port}#{path}"
-    end
+    @host = host
+    @port = port
+    @ssl = ssl
+    @path = path
     @log = log
     @chain = chain
+    @faraday = faraday
   end
 
   # Get balance of a public address.
@@ -125,29 +120,29 @@ class ERC20::Wallet
   # @param [Array] ready When connected, TRUE will be added to this array
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
   def accept(addresses, connected: [], raw: false)
-    WebSocket::Client::Simple.connect(@wss) do |ws|
+    WebSocket::Client::Simple.connect(url) do |ws|
       log = @log
       contract = @contract
-      wss = @wss
       ws.on(:open) do
-        log.debug("Connected to #{wss}")
-        msg = {
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'eth_subscribe',
-          params: [
-            'logs',
-            {
-              address: contract,
-              topics: [
-                '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
-                nil,
-                addresses.map { |a| "0x000000000000000000000000#{a[2..]}" }
-              ]
-            }
-          ]
-        }
-        ws.send(msg.to_json)
+        log.debug("Connected to #{@host}")
+        ws.send(
+          {
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'eth_subscribe',
+            params: [
+              'logs',
+              {
+                address: contract,
+                topics: [
+                  '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+                  nil,
+                  addresses.map { |a| "0x000000000000000000000000#{a[2..]}" }
+                ]
+              }
+            ]
+          }.to_json
+        )
         connected.append(1)
         log.debug("Subscribed to #{addresses.count} addresses")
       end
@@ -172,19 +167,23 @@ class ERC20::Wallet
         end
       end
       ws.on(:close) do |_e|
-        log.debug("Disconnected from #{wss}")
+        log.debug("Disconnected from #{@host}")
       end
       ws.on(:error) do |e|
-        log.debug("Error at #{wss}: #{e}")
+        log.debug("Error at #{@host}: #{e}")
       end
     end
   end
 
   private
 
+  def url
+    "http#{@ssl ? 's' : ''}://#{@host}:#{@port}#{@path}"
+  end
+
   def jsonrpc
     JSONRPC.logger = Loog::NULL
-    JSONRPC::Client.new(@rpc)
+    JSONRPC::Client.new(url, connection: @faraday || nil)
   end
 
   def gas_estimate(from, data)
