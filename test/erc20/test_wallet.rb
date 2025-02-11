@@ -76,6 +76,17 @@ class TestWallet < Minitest::Test
     assert_predicate(b, :zero?)
   end
 
+  def test_checks_balance_on_polygon
+    w = ERC20::Wallet.new(
+      contract: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+      host: 'polygon-mainnet.infura.io', http_path: "/v3/#{env('INFURA_KEY')}",
+      log: loog
+    )
+    b = w.balance(STABLE)
+    refute_nil(b)
+    assert_predicate(b, :zero?)
+  end
+
   def test_checks_balance_on_hardhat
     on_hardhat do |wallet|
       b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
