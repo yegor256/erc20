@@ -60,8 +60,8 @@ To connect to the server via [HTTP proxy] with [basic authentication]:
 ```ruby
 w = ERC20::Wallet.new(
   contract: ERC20::Wallet.USDT,
-  host: 'mainnet.infura.io',
-  path: '/v3/<your-infura-key>',
+  host: 'go.getblock.io',
+  path: '/<your-getblock-key>',
   proxy: 'http://jeffrey:swordfish@example.com:3128'
 )
 ```
