@@ -27,14 +27,14 @@ w = ERC20::Wallet.new(
   log: $stdout
 )
 
-# Check balance on the address:
+# Check how many ERC20 tokens are on the given address:
 usdt = w.balance(address)
 
-# Send a few tokens to someone and get transaction hash:
-txn = w.pay(private_key, to_address, amount)
+# Send a few ERC20 tokens to someone and get transaction hash:
+hex = w.pay(private_key, to_address, amount)
 
-# Stay waiting, and trigger the block when transactions arrive:
-addresses = ['0x...', '0x...']
+# Stay waiting, and trigger the block when new ERC20 payments show up:
+addresses = ['0x...', '0x...'] # only wait for payments to these addresses
 w.accept(addresses) do |event|
   puts event[:amount] # how much
   puts event[:from] # who sent the payment
