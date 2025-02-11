@@ -107,7 +107,7 @@ class TestWallet < Minitest::Test
             event = e
           end
         rescue StandardError => e
-          puts Backtrace.new(e)
+          loog.error(Backtrace.new(e))
         end
       wait_for { !connected.empty? }
       sum = 77_000
@@ -132,7 +132,7 @@ class TestWallet < Minitest::Test
         end
       rescue StandardError => e
         failed = true
-        puts Backtrace.new(e)
+        loog.error(Backtrace.new(e))
       end
     wait_for { !connected.empty? }
     daemon.kill
