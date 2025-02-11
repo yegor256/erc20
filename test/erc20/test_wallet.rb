@@ -162,6 +162,26 @@ class TestWallet < Minitest::Test
     end
   end
 
+  def test_checks_balance_via_proxy_on_mainnet
+    RandomPort::Pool::SINGLETON.acquire do |proxy|
+      donce(
+        image: 'yegor256/squid-proxy:latest',
+        ports: { proxy => 3128 },
+        env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' },
+        root: true, log: Loog::NULL
+      ) do
+        on_hardhat do
+          w = ERC20::Wallet.new(
+            host: 'mainnet.infura.io', path: "/v3/#{env('INFURA_KEY')}",
+            proxy: "http://jeffrey:swordfish@localhost:#{proxy}",
+            log: Loog::NULL
+          )
+          assert_equal(27_258_889, w.balance(STABLE))
+        end
+      end
+    end
+  end
+
   private
 
   def wait_for
