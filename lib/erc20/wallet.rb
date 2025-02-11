@@ -37,6 +37,9 @@ class ERC20::Wallet
   # Address of USDT contract.
   USDT = '0xdac17f958d2ee523a2206206994597c13d831ec7'
 
+  # These properties are read-only:
+  attr_reader :host, :port, :ssl, :chain, :contract, :path
+
   # Constructor.
   # @param [String] contract Hex of the contract in Etherium
   # @param [Integer] chain The ID of the chain (1 for mainnet)
@@ -44,9 +47,11 @@ class ERC20::Wallet
   # @param [Integer] port TCP port to use
   # @param [String] path The path in the connection URL
   # @param [Boolean] ssl Should we use SSL (for https and wss)
+  # @param [Object] faraday Custom connection object, instance of +Faraday+
   # @param [Object] log The destination for logs
   def initialize(contract: USDT, chain: 1, log: $stdout,
-                 host: nil, port: 443, path: '/', ssl: true)
+                 host: nil, port: 443, path: '/', ssl: true,
+                 faraday: nil)
     @contract = contract
     @host = host
     @port = port
@@ -54,6 +59,7 @@ class ERC20::Wallet
     @path = path
     @log = log
     @chain = chain
+    @faraday = faraday
   end
 
   # Get balance of a public address.
@@ -177,7 +183,7 @@ class ERC20::Wallet
 
   def jsonrpc
     JSONRPC.logger = Loog::NULL
-    JSONRPC::Client.new(url)
+    JSONRPC::Client.new(url, connection: @faraday || nil)
   end
 
   def gas_estimate(from, data)

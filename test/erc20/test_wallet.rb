@@ -128,7 +128,13 @@ class TestWallet < Minitest::Test
         ports: { proxy => 3128 },
         env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' }
       ) do
-        on_hardhat do |wallet|
+        on_hardhat do |w|
+          wallet = ERC20::Wallet.new(
+            contract: w.contract, chain: w.chain,
+            host: w.host, port: w.port, path: w.path, ssl: w.ssl,
+            proxy_host: 'localhost', proxy_port: proxy, proxy_ssl: false,
+            log: Loog::NULL
+          )
           b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
           assert_equal(123_000_100_000, b)
         end
