@@ -117,7 +117,8 @@ class ERC20::Wallet
 
   # Wait for incoming transactions and let the block know when they
   # arrive. It's a blocking call, it's better to run it in a separate
-  # thread.
+  # thread. It will never finish. In order to stop it, you should do
+  # +Thread.kill+.
   #
   # @param [Array<String>] addresses Addresses to monitor
   # @param [Array] ready When connected, TRUE will be added to this array
