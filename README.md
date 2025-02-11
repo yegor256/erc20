@@ -55,6 +55,29 @@ To get address from private one:
 public_hex = Eth::Key.new(priv: key).address
 ```
 
+To connect to the server via [HTTP proxy] with [basic authentication], with the
+help of [Faraday](https://github.com/lostisland/faraday):
+
+```ruby
+require 'faraday'
+faraday = Faraday.new do |f|
+  f.adapter(Faraday.default_adapter)
+  f.proxy = {
+    uri: "http://host:3128",
+    user: 'jeffrey',
+    password: 'swordfish'
+  }
+end
+w = ERC20::Wallet.new(
+  contract: ERC20::Wallet.USDT,
+  host: 'mainnet.infura.io',
+  path: '/v3/<your-infura-key>',
+  faraday:
+)
+```
+
+You can use [squid-proxy] Docker image to set up an HTTP proxy.
+
 ## How to contribute
 
 Read
@@ -78,3 +101,6 @@ If it's clean and you don't see any error messages, submit your pull request.
 [Infura]: https://infura.io/
 [Alchemy]: https://alchemy.com/
 [GetBlock]: https://getblock.io/
+[basic authentication]: https://en.wikipedia.org/wiki/Basic_access_authentication
+[HTTP proxy]: https://en.wikipedia.org/wiki/Proxy_server
+[squid-proxy]: https://github.com/yegor256/squid-proxy

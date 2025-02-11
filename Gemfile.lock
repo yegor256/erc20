@@ -273,6 +273,7 @@ DEPENDENCIES
   backtrace (> 0)
   donce (> 0)
   erc20!
+  faraday (> 0)
   loog (> 0)
   minitest (= 5.25.4)
   minitest-reporters (= 1.7.1)
