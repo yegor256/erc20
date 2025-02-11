@@ -76,7 +76,7 @@ w = ERC20::Wallet.new(
 )
 ```
 
-You can use [squid-proxy] Docker image to set up an HTTP proxy.
+You can use [squid-proxy] [Docker] image to set up your own [HTTP proxy] server.
 
 ## How to contribute
 
@@ -104,3 +104,4 @@ If it's clean and you don't see any error messages, submit your pull request.
 [basic authentication]: https://en.wikipedia.org/wiki/Basic_access_authentication
 [HTTP proxy]: https://en.wikipedia.org/wiki/Proxy_server
 [squid-proxy]: https://github.com/yegor256/squid-proxy
+[Docker]: https://www.docker.com/
