@@ -55,24 +55,14 @@ To get address from private one:
 public_hex = Eth::Key.new(priv: key).address
 ```
 
-To connect to the server via [HTTP proxy] with [basic authentication], with the
-help of [Faraday](https://github.com/lostisland/faraday):
+To connect to the server via [HTTP proxy] with [basic authentication]:
 
 ```ruby
-require 'faraday'
-faraday = Faraday.new do |f|
-  f.adapter(Faraday.default_adapter)
-  f.proxy = {
-    uri: "http://host:3128",
-    user: 'jeffrey',
-    password: 'swordfish'
-  }
-end
 w = ERC20::Wallet.new(
   contract: ERC20::Wallet.USDT,
   host: 'mainnet.infura.io',
   path: '/v3/<your-infura-key>',
-  faraday:
+  proxy: 'http://jeffrey:swordfish@example.com:3128'
 )
 ```
 
