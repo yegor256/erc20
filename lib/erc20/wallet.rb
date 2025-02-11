@@ -21,10 +21,10 @@
 # SOFTWARE.
 
 require 'eth'
+require 'faye/websocket'
 require 'json'
 require 'jsonrpc/client'
 require 'loog'
-require 'websocket-client-simple'
 require_relative '../erc20'
 
 # A wallet.
@@ -121,65 +121,70 @@ class ERC20::Wallet
   # @param [Array] ready When connected, TRUE will be added to this array
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
   def accept(addresses, connected: [], raw: false)
-    WebSocket::Client::Simple.connect(url) do |ws|
-      log = @log
-      contract = @contract
-      ws.on(:open) do
-        log.debug("Connected to #{@host}")
-        ws.send(
-          {
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'eth_subscribe',
-            params: [
-              'logs',
-              {
-                address: contract,
-                topics: [
-                  '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
-                  nil,
-                  addresses.map { |a| "0x000000000000000000000000#{a[2..]}" }
-                ]
-              }
-            ]
-          }.to_json
-        )
-        connected.append(1)
-        log.debug("Subscribed to #{addresses.count} addresses")
-      end
-      ws.on(:message) do |msg|
-        data =
-          begin
-            JSON.parse(msg.data)
-          rescue StandardError
-            {}
-          end
-        if data['method'] == 'eth_subscription' && data.dig('params', 'result')
-          event = data['params']['result']
-          unless raw
-            event = {
-              amount: event['data'].to_i(16),
-              from: "0x#{event['topics'][1][26..].downcase}",
-              to: "0x#{event['topics'][2][26..].downcase}"
+    u = url('ws')
+    @log.debug("Connecting to #{u}...")
+    ws = Faye::WebSocket::Client.new(u)
+    puts '111111111111111111111111111111111111111111111111111111111111111'
+    log = @log
+    contract = @contract
+    ws.on(:open) do |event|
+      puts '22222222222222222'
+      log.debug("Connected to #{@host}")
+      ws.send(
+        {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_subscribe',
+          params: [
+            'logs',
+            {
+              address: contract,
+              topics: [
+                '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+                nil,
+                addresses.map { |a| "0x000000000000000000000000#{a[2..]}" }
+              ]
             }
-          end
-          log.debug("New event arrived from #{event['address']}")
-          yield event
+          ]
+        }.to_json
+      )
+      connected.append(1)
+      log.debug("Subscribed to #{addresses.count} addresses")
+    end
+    ws.on(:message) do |msg|
+      data =
+        begin
+          JSON.parse(msg.data)
+        rescue StandardError
+          {}
         end
-      end
-      ws.on(:close) do |_e|
-        log.debug("Disconnected from #{@host}")
-      end
-      ws.on(:error) do |e|
-        log.debug("Error at #{@host}: #{e}")
+      if data['method'] == 'eth_subscription' && data.dig('params', 'result')
+        event = data['params']['result']
+        unless raw
+          event = {
+            amount: event['data'].to_i(16),
+            from: "0x#{event['topics'][1][26..].downcase}",
+            to: "0x#{event['topics'][2][26..].downcase}"
+          }
+        end
+        log.debug("New event arrived from #{event['address']}")
+        yield event
       end
     end
+    ws.on(:close) do |_e|
+      log.debug("Disconnected from #{@host}")
+    end
+    ws.on(:error) do |e|
+      log.debug("Error at #{@host}: #{e}")
+    end
+    puts '3333333333'
+    sleep 10
   end
 
   private
 
-  def url
-    "http#{@ssl ? 's' : ''}://#{@host}:#{@port}#{@path}"
+  def url(prefix = 'http')
+    "#{prefix}#{@ssl ? 's' : ''}://#{@host}:#{@port}#{@path}"
   end
 
   def jsonrpc

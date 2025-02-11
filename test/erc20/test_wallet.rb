@@ -64,7 +64,7 @@ class TestWallet < Minitest::Test
     w = ERC20::Wallet.new(
       host: 'mainnet.infura.io',
       path: '/v3/invalid-key-here',
-      log: Loog::NULL
+      log: loog
     )
     assert_raises(StandardError) { w.balance(STABLE_ADDRESS) }
   end
@@ -127,7 +127,7 @@ class TestWallet < Minitest::Test
         image: 'yegor256/squid-proxy:latest',
         ports: { proxy => 3128 },
         env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' },
-        root: true, log: Loog::NULL
+        root: true, log: loog
       ) do
         on_hardhat do |w|
           faraday =
@@ -142,7 +142,7 @@ class TestWallet < Minitest::Test
           wallet = ERC20::Wallet.new(
             contract: w.contract, chain: w.chain,
             host: donce_host, port: w.port, path: w.path, ssl: w.ssl, faraday:,
-            log: Loog::NULL
+            log: loog
           )
           b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
           assert_equal(123_000_100_000, b)
@@ -152,6 +152,10 @@ class TestWallet < Minitest::Test
   end
 
   private
+
+  def loog
+    ENV['RAKE'] ? Loog::NULL : Loog::VERBOSE
+  end
 
   def wait_for
     start = Time.now
@@ -179,7 +183,7 @@ class TestWallet < Minitest::Test
       { host: 'mainnet.infura.io', path: "/v3/#{env('INFURA_KEY')}" },
       { host: 'go.getblock.io', path: "/#{env('GETBLOCK_KEY')}" }
     ].map do |server|
-      ERC20::Wallet.new(host: server[:host], path: server[:path], log: Loog::NULL)
+      ERC20::Wallet.new(host: server[:host], path: server[:path], log: loog)
     end.sample
   end
 
@@ -188,7 +192,7 @@ class TestWallet < Minitest::Test
       { host: 'sepolia.infura.io', path: "/v3/#{env('INFURA_KEY')}" },
       { host: 'go.getblock.io', path: "/#{env('GETBLOCK_SEPOILA_KEY')}" }
     ].map do |server|
-      ERC20::Wallet.new(host: server[:host], path: server[:path], log: Loog::NULL)
+      ERC20::Wallet.new(host: server[:host], path: server[:path], log: loog)
     end.sample
   end
 
@@ -198,7 +202,7 @@ class TestWallet < Minitest::Test
         home: File.join(__dir__, '../../hardhat'),
         ports: { port => 8545 },
         command: 'npx hardhat node',
-        log: Loog::NULL
+        log: loog
       ) do
         wait_for_port(port)
         cmd = [
@@ -211,13 +215,13 @@ class TestWallet < Minitest::Test
           home: File.join(__dir__, '../../hardhat'),
           command: "/bin/bash -c #{Shellwords.escape(cmd)}",
           build_args: { 'HOST' => donce_host, 'PORT' => port },
-          log: Loog::NULL,
+          log: loog,
           root: true
         ).split("\n").last
         wallet = ERC20::Wallet.new(
           contract:, chain: 4242,
           host: 'localhost', port:, path: '/', ssl: false,
-          log: Loog::NULL
+          log: loog
         )
         yield wallet
       end
