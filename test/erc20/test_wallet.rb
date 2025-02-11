@@ -39,7 +39,7 @@ require_relative '../../lib/erc20/wallet'
 class TestWallet < Minitest::Test
   # At this address, in the mainnet, there are a few USDT tokens. I won't
   # move them anyway, that's why tests can use this address forever.
-  STABLE_ADDRESS = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
+  STABLE = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
 
   # One guy private hex.
   JEFF = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
@@ -48,7 +48,7 @@ class TestWallet < Minitest::Test
   WALTER = '91f9111b1744d55361e632771a4e53839e9442a9fef45febc0a5c838c686a15b'
 
   def test_checks_balance_on_mainnet
-    b = mainnet.balance(STABLE_ADDRESS)
+    b = mainnet.balance(STABLE)
     refute_nil(b)
     assert_equal(27_258_889, b)
   end
@@ -66,12 +66,12 @@ class TestWallet < Minitest::Test
       path: '/v3/invalid-key-here',
       log: loog
     )
-    assert_raises(StandardError) { w.balance(STABLE_ADDRESS) }
+    assert_raises(StandardError) { w.balance(STABLE) }
   end
 
   def test_checks_balance_on_testnet
     skip('does not work')
-    b = testnet.balance(STABLE_ADDRESS)
+    b = testnet.balance(STABLE)
     refute_nil(b)
     assert_predicate(b, :positive?)
   end
@@ -119,6 +119,25 @@ class TestWallet < Minitest::Test
       assert_equal(jeff, event[:from])
       assert_equal(walter, event[:to])
     end
+  end
+
+  def test_accepts_payments_on_mainnet
+    skip('does not work')
+    connected = []
+    failed = false
+    daemon =
+      Thread.new do
+        mainnet.accept([STABLE], connected:) do |_|
+          # ignore it
+        end
+      rescue StandardError => e
+        failed = true
+        puts Backtrace.new(e)
+      end
+    wait_for { !connected.empty? }
+    daemon.kill
+    daemon.join(30)
+    refute(failed)
   end
 
   def test_checks_balance_via_proxy
