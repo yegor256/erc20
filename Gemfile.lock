@@ -2,12 +2,11 @@ PATH
   remote: .
   specs:
     erc20 (0.0.0)
-      backtrace (> 0)
       eth (>= 0.5.13)
+      faye-websocket (>= 0.11.3)
       json (>= 2.10.1)
       jsonrpc-client (>= 0.1.4)
       loog (> 0)
-      websocket-client-simple (>= 0.9.0)
 
 GEM
   remote: https://rubygems.org/
@@ -72,13 +71,16 @@ GEM
       scrypt (~> 3.0)
     ethon (0.16.0)
       ffi (>= 1.15.0)
-    event_emitter (0.2.6)
+    eventmachine (1.2.7)
     faraday (2.12.2)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
     faraday-net_http (3.4.0)
       net-http (>= 0.5.0)
+    faye-websocket (0.11.3)
+      eventmachine (>= 0.12.0)
+      websocket-driver (>= 0.5.1)
     ffi (1.17.1-arm64-darwin)
     ffi (1.17.1-x64-mingw-ucrt)
     ffi (1.17.1-x86_64-darwin)
@@ -116,7 +118,6 @@ GEM
     minitest-retry (0.2.5)
       minitest (>= 5.0)
     multi_json (1.15.0)
-    mutex_m (0.3.0)
     net-http (0.6.0)
       uri
     nokogiri (1.18.2-arm64-darwin)
@@ -252,12 +253,10 @@ GEM
     unicode-emoji (4.0.4)
     uri (1.0.2)
     useragent (0.16.11)
-    websocket (1.2.11)
-    websocket-client-simple (0.9.0)
+    websocket-driver (0.7.7)
       base64
-      event_emitter
-      mutex_m
-      websocket
+      websocket-extensions (>= 0.1.0)
+    websocket-extensions (0.1.5)
     yard (0.9.37)
     zeitwerk (2.7.1)
 

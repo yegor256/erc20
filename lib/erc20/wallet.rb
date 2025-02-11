@@ -21,11 +21,12 @@
 # SOFTWARE.
 
 require 'eth'
+require 'eventmachine'
+require 'faye/websocket'
 require 'json'
 require 'jsonrpc/client'
 require 'loog'
 require 'uri'
-require 'websocket-client-simple'
 require_relative '../erc20'
 
 # A wallet.
@@ -122,7 +123,10 @@ class ERC20::Wallet
   # @param [Array] ready When connected, TRUE will be added to this array
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
   def accept(addresses, connected: [], raw: false)
-    WebSocket::Client::Simple.connect(url) do |ws|
+    EM.run do
+      u = url('ws')
+      @log.debug("Connecting to #{u}...")
+      ws = Faye::WebSocket::Client.new(u, [], proxy: @proxy ? { origin: @proxy } : {})
       log = @log
       contract = @contract
       ws.on(:open) do
@@ -172,15 +176,15 @@ class ERC20::Wallet
         log.debug("Disconnected from #{@host}")
       end
       ws.on(:error) do |e|
-        log.debug("Error at #{@host}: #{e}")
+        log.debug("Error at #{@host}: #{e.message}")
       end
     end
   end
 
   private
 
-  def url
-    "http#{@ssl ? 's' : ''}://#{@host}:#{@port}#{@path}"
+  def url(prefix = 'http')
+    "#{prefix}#{@ssl ? 's' : ''}://#{@host}:#{@port}#{@path}"
   end
 
   def jsonrpc

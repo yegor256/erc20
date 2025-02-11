@@ -65,7 +65,7 @@ class TestWallet < Minitest::Test
     w = ERC20::Wallet.new(
       host: 'mainnet.infura.io',
       path: '/v3/invalid-key-here',
-      log: Loog::NULL
+      log: loog
     )
     assert_raises(StandardError) { w.balance(STABLE) }
   end
@@ -108,7 +108,7 @@ class TestWallet < Minitest::Test
             event = e
           end
         rescue StandardError => e
-          puts Backtrace.new(e)
+          loog.error(Backtrace.new(e))
         end
       wait_for { !connected.empty? }
       sum = 77_000
@@ -119,6 +119,33 @@ class TestWallet < Minitest::Test
       assert_equal(sum, event[:amount])
       assert_equal(jeff, event[:from])
       assert_equal(walter, event[:to])
+    end
+  end
+
+  def test_accepts_payments_on_hardhat_via_proxy
+    via_proxy do |proxy|
+      walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
+      jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
+      on_hardhat do |w|
+        wallet = through_proxy(w, proxy)
+        connected = []
+        event = nil
+        daemon =
+          Thread.new do
+            wallet.accept([walter, jeff], connected:) do |e|
+              event = e
+            end
+          rescue StandardError => e
+            loog.error(Backtrace.new(e))
+          end
+        wait_for { !connected.empty? }
+        sum = 55_000
+        wallet.pay(JEFF, walter, sum)
+        wait_for { !event.nil? }
+        daemon.kill
+        daemon.join(30)
+        assert_equal(sum, event[:amount])
+      end
     end
   end
 
@@ -133,7 +160,7 @@ class TestWallet < Minitest::Test
         end
       rescue StandardError => e
         failed = true
-        puts Backtrace.new(e)
+        loog.error(Backtrace.new(e))
       end
     wait_for { !connected.empty? }
     daemon.kill
@@ -142,48 +169,32 @@ class TestWallet < Minitest::Test
   end
 
   def test_checks_balance_via_proxy
-    RandomPort::Pool::SINGLETON.acquire do |proxy|
-      donce(
-        image: 'yegor256/squid-proxy:latest',
-        ports: { proxy => 3128 },
-        env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' },
-        root: true, log: Loog::NULL
-      ) do
-        on_hardhat do |w|
-          wallet = ERC20::Wallet.new(
-            contract: w.contract, chain: w.chain,
-            host: donce_host, port: w.port, path: w.path, ssl: w.ssl,
-            proxy: "http://jeffrey:swordfish@localhost:#{proxy}",
-            log: Loog::NULL
-          )
-          b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
-          assert_equal(123_000_100_000, b)
-        end
+    via_proxy do |proxy|
+      on_hardhat do |w|
+        wallet = through_proxy(w, proxy)
+        b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
+        assert_equal(123_000_100_000, b)
       end
     end
   end
 
   def test_checks_balance_via_proxy_on_mainnet
-    RandomPort::Pool::SINGLETON.acquire do |proxy|
-      donce(
-        image: 'yegor256/squid-proxy:latest',
-        ports: { proxy => 3128 },
-        env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' },
-        root: true, log: Loog::NULL
-      ) do
-        on_hardhat do
-          w = ERC20::Wallet.new(
-            host: 'mainnet.infura.io', path: "/v3/#{env('INFURA_KEY')}",
-            proxy: "http://jeffrey:swordfish@localhost:#{proxy}",
-            log: Loog::NULL
-          )
-          assert_equal(27_258_889, w.balance(STABLE))
-        end
+    via_proxy do |proxy|
+      on_hardhat do
+        w = ERC20::Wallet.new(
+          host: 'mainnet.infura.io', path: "/v3/#{env('INFURA_KEY')}",
+          proxy:, log: loog
+        )
+        assert_equal(27_258_889, w.balance(STABLE))
       end
     end
   end
 
   private
+
+  def loog
+    ENV['RAKE'] ? Loog::NULL : Loog::VERBOSE
+  end
 
   def wait_for
     start = Time.now
@@ -211,7 +222,7 @@ class TestWallet < Minitest::Test
       { host: 'mainnet.infura.io', path: "/v3/#{env('INFURA_KEY')}" },
       { host: 'go.getblock.io', path: "/#{env('GETBLOCK_KEY')}" }
     ].map do |server|
-      ERC20::Wallet.new(host: server[:host], path: server[:path], log: Loog::NULL)
+      ERC20::Wallet.new(host: server[:host], path: server[:path], log: loog)
     end.sample
   end
 
@@ -220,8 +231,29 @@ class TestWallet < Minitest::Test
       { host: 'sepolia.infura.io', path: "/v3/#{env('INFURA_KEY')}" },
       { host: 'go.getblock.io', path: "/#{env('GETBLOCK_SEPOILA_KEY')}" }
     ].map do |server|
-      ERC20::Wallet.new(host: server[:host], path: server[:path], log: Loog::NULL)
+      ERC20::Wallet.new(host: server[:host], path: server[:path], log: loog)
     end.sample
+  end
+
+  def through_proxy(wallet, proxy)
+    ERC20::Wallet.new(
+      contract: wallet.contract, chain: wallet.chain,
+      host: donce_host, port: wallet.port, path: wallet.path, ssl: wallet.ssl,
+      proxy:, log: loog
+    )
+  end
+
+  def via_proxy
+    RandomPort::Pool::SINGLETON.acquire do |port|
+      donce(
+        image: 'yegor256/squid-proxy:latest',
+        ports: { port => 3128 },
+        env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' },
+        root: true, log: loog
+      ) do
+        yield "http://jeffrey:swordfish@localhost:#{port}"
+      end
+    end
   end
 
   def on_hardhat
@@ -230,7 +262,7 @@ class TestWallet < Minitest::Test
         home: File.join(__dir__, '../../hardhat'),
         ports: { port => 8545 },
         command: 'npx hardhat node',
-        log: Loog::NULL
+        log: loog
       ) do
         wait_for_port(port)
         cmd = [
@@ -243,13 +275,13 @@ class TestWallet < Minitest::Test
           home: File.join(__dir__, '../../hardhat'),
           command: "/bin/bash -c #{Shellwords.escape(cmd)}",
           build_args: { 'HOST' => donce_host, 'PORT' => port },
-          log: Loog::NULL,
+          log: loog,
           root: true
         ).split("\n").last
         wallet = ERC20::Wallet.new(
           contract:, chain: 4242,
           host: 'localhost', port:, path: '/', ssl: false,
-          log: Loog::NULL
+          log: loog
         )
         yield wallet
       end

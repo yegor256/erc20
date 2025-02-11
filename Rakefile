@@ -24,6 +24,8 @@ require 'rubygems'
 require 'rake'
 require 'rake/clean'
 
+ENV['RAKE'] = 'true'
+
 def name
   @name ||= File.basename(Dir['*.gemspec'].first, '.*')
 end
