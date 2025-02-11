@@ -41,25 +41,27 @@ class ERC20::Wallet
   USDT = '0xdac17f958d2ee523a2206206994597c13d831ec7'
 
   # These properties are read-only:
-  attr_reader :host, :port, :ssl, :chain, :contract, :path
+  attr_reader :host, :port, :ssl, :chain, :contract, :ws_path, :http_path
 
   # Constructor.
   # @param [String] contract Hex of the contract in Etherium
   # @param [Integer] chain The ID of the chain (1 for mainnet)
   # @param [String] host The host to connect to
   # @param [Integer] port TCP port to use
-  # @param [String] path The path in the connection URL
+  # @param [String] http_path The path in the connection URL, for HTTP RPC
+  # @param [String] ws_path The path in the connection URL, for Websockets
   # @param [Boolean] ssl Should we use SSL (for https and wss)
   # @param [String] proxy The URL of the proxy to use
   # @param [Object] log The destination for logs
   def initialize(contract: USDT, chain: 1, log: $stdout,
-                 host: nil, port: 443, path: '/', ssl: true,
-                 proxy: nil)
+                 host: nil, port: 443, http_path: '/', ws_path: '/',
+                 ssl: true, proxy: nil)
     @contract = contract
     @host = host
     @port = port
     @ssl = ssl
-    @path = path
+    @http_path = http_path
+    @ws_path = ws_path
     @log = log
     @chain = chain
     @proxy = proxy
@@ -125,7 +127,7 @@ class ERC20::Wallet
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
   def accept(addresses, connected: [], raw: false)
     EM.run do
-      u = url('ws')
+      u = url(http: false)
       @log.debug("Connecting to #{u}...")
       ws = Faye::WebSocket::Client.new(u, [], proxy: @proxy ? { origin: @proxy } : {})
       log = @log
@@ -184,8 +186,8 @@ class ERC20::Wallet
 
   private
 
-  def url(prefix = 'http')
-    "#{prefix}#{@ssl ? 's' : ''}://#{@host}:#{@port}#{@path}"
+  def url(http: true)
+    "#{http ? 'http' : 'ws'}#{@ssl ? 's' : ''}://#{@host}:#{@port}#{http ? @http_path : @ws_path}"
   end
 
   def jsonrpc

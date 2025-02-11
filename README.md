@@ -23,7 +23,8 @@ require 'erc20'
 w = ERC20::Wallet.new(
   contract: ERC20::Wallet.USDT, # hex of it
   host: 'mainnet.infura.io',
-  path: '/v3/<your-infura-key>',
+  http_path: '/v3/<your-infura-key>',
+  ws_path: '/ws/v3/<your-infura-key>',
   log: $stdout
 )
 
@@ -60,7 +61,8 @@ To connect to the server via [HTTP proxy] with [basic authentication]:
 ```ruby
 w = ERC20::Wallet.new(
   host: 'go.getblock.io',
-  path: '/<your-getblock-key>',
+  http_path: '/<your-rpc-getblock-key>',
+  ws_path: '/<your-ws-getblock-key>',
   proxy: 'http://jeffrey:swordfish@example.com:3128' # here!
 )
 ```

@@ -38,7 +38,7 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWallet < Minitest::Test
-  # At this address, in the mainnet, there are a few USDT tokens. I won't
+  # At this address, in Etherium mainnet, there are a few USDT tokens. I won't
   # move them anyway, that's why tests can use this address forever.
   STABLE = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
 
@@ -64,7 +64,7 @@ class TestWallet < Minitest::Test
   def test_fails_with_invalid_infura_key
     w = ERC20::Wallet.new(
       host: 'mainnet.infura.io',
-      path: '/v3/invalid-key-here',
+      http_path: '/v3/invalid-key-here',
       log: loog
     )
     assert_raises(StandardError) { w.balance(STABLE) }
@@ -150,7 +150,6 @@ class TestWallet < Minitest::Test
   end
 
   def test_accepts_payments_on_mainnet
-    skip('does not work')
     connected = []
     failed = false
     daemon =
@@ -182,7 +181,7 @@ class TestWallet < Minitest::Test
     via_proxy do |proxy|
       on_hardhat do
         w = ERC20::Wallet.new(
-          host: 'mainnet.infura.io', path: "/v3/#{env('INFURA_KEY')}",
+          host: 'mainnet.infura.io', http_path: "/v3/#{env('INFURA_KEY')}",
           proxy:, log: loog
         )
         assert_equal(27_258_889, w.balance(STABLE))
@@ -219,27 +218,43 @@ class TestWallet < Minitest::Test
 
   def mainnet
     [
-      { host: 'mainnet.infura.io', path: "/v3/#{env('INFURA_KEY')}" },
-      { host: 'go.getblock.io', path: "/#{env('GETBLOCK_KEY')}" }
+      {
+        host: 'mainnet.infura.io',
+        http_path: "/v3/#{env('INFURA_KEY')}",
+        ws_path: "/ws/v3/#{env('INFURA_KEY')}"
+      },
+      {
+        host: 'go.getblock.io',
+        http_path: "/#{env('GETBLOCK_KEY')}",
+        ws_path: "/#{env('GETBLOCK_WS_KEY')}"
+      }
     ].map do |server|
-      ERC20::Wallet.new(host: server[:host], path: server[:path], log: loog)
+      ERC20::Wallet.new(host: server[:host], http_path: server[:http_path], ws_path: server[:ws_path], log: loog)
     end.sample
   end
 
   def testnet
     [
-      { host: 'sepolia.infura.io', path: "/v3/#{env('INFURA_KEY')}" },
-      { host: 'go.getblock.io', path: "/#{env('GETBLOCK_SEPOILA_KEY')}" }
+      {
+        host: 'sepolia.infura.io',
+        http_path: "/v3/#{env('INFURA_KEY')}",
+        ws_path: "/ws/v3/#{env('INFURA_KEY')}"
+      },
+      {
+        host: 'go.getblock.io',
+        http_path: "/#{env('GETBLOCK_SEPOILA_KEY')}",
+        ws_path: "/#{env('GETBLOCK_SEPOILA_KEY')}"
+      }
     ].map do |server|
-      ERC20::Wallet.new(host: server[:host], path: server[:path], log: loog)
+      ERC20::Wallet.new(host: server[:host], http_path: server[:http_path], ws_path: server[:ws_path], log: loog)
     end.sample
   end
 
   def through_proxy(wallet, proxy)
     ERC20::Wallet.new(
       contract: wallet.contract, chain: wallet.chain,
-      host: donce_host, port: wallet.port, path: wallet.path, ssl: wallet.ssl,
-      proxy:, log: loog
+      host: donce_host, port: wallet.port, http_path: wallet.http_path, ws_path: wallet.ws_path,
+      ssl: wallet.ssl, proxy:, log: loog
     )
   end
 
@@ -280,7 +295,7 @@ class TestWallet < Minitest::Test
         ).split("\n").last
         wallet = ERC20::Wallet.new(
           contract:, chain: 4242,
-          host: 'localhost', port:, path: '/', ssl: false,
+          host: 'localhost', port:, http_path: '/', ws_path: '/', ssl: false,
           log: loog
         )
         yield wallet
