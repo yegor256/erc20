@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 require 'eth'
+require 'json'
 require 'jsonrpc/client'
 require 'loog'
 require 'websocket-client-simple'

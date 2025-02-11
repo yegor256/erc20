@@ -40,9 +40,10 @@ Gem::Specification.new do |s|
   s.rdoc_options = ['--charset=UTF-8']
   s.extra_rdoc_files = ['README.md', 'LICENSE.txt']
   s.add_dependency 'backtrace', '>0'
-  s.add_dependency 'eth', '~>0.4'
-  s.add_dependency 'jsonrpc-client', '>0'
+  s.add_dependency 'eth', '>=0.5.13'
+  s.add_dependency 'json', '>=2.10.1'
+  s.add_dependency 'jsonrpc-client', '>=0.1.4'
   s.add_dependency 'loog', '>0'
-  s.add_dependency 'websocket-client-simple', '>0'
+  s.add_dependency 'websocket-client-simple', '>=0.9.0'
   s.metadata['rubygems_mfa_required'] = 'true'
 end

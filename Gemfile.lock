@@ -3,10 +3,11 @@ PATH
   specs:
     erc20 (0.0.0)
       backtrace (> 0)
-      eth (~> 0.4)
-      jsonrpc-client (> 0)
+      eth (>= 0.5.13)
+      json (>= 2.10.1)
+      jsonrpc-client (>= 0.1.4)
       loog (> 0)
-      websocket-client-simple (> 0)
+      websocket-client-simple (>= 0.9.0)
 
 GEM
   remote: https://rubygems.org/
@@ -93,7 +94,7 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json (2.10.0)
+    json (2.10.1)
     jsonrpc-client (0.1.4)
       faraday
       multi_json (>= 1.1.0)
