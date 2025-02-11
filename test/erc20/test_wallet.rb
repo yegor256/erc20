@@ -149,18 +149,10 @@ class TestWallet < Minitest::Test
         root: true, log: Loog::NULL
       ) do
         on_hardhat do |w|
-          faraday =
-            Faraday.new do |f|
-              f.adapter(Faraday.default_adapter)
-              f.proxy = {
-                uri: "http://localhost:#{proxy}",
-                user: 'jeffrey',
-                password: 'swordfish'
-              }
-            end
           wallet = ERC20::Wallet.new(
             contract: w.contract, chain: w.chain,
-            host: donce_host, port: w.port, path: w.path, ssl: w.ssl, faraday:,
+            host: donce_host, port: w.port, path: w.path, ssl: w.ssl,
+            proxy: "http://jeffrey:swordfish@localhost:#{proxy}",
             log: Loog::NULL
           )
           b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)

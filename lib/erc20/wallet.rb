@@ -24,6 +24,7 @@ require 'eth'
 require 'json'
 require 'jsonrpc/client'
 require 'loog'
+require 'uri'
 require 'websocket-client-simple'
 require_relative '../erc20'
 
@@ -48,11 +49,11 @@ class ERC20::Wallet
   # @param [Integer] port TCP port to use
   # @param [String] path The path in the connection URL
   # @param [Boolean] ssl Should we use SSL (for https and wss)
-  # @param [Object] faraday Custom connection object, instance of +Faraday+
+  # @param [String] proxy The URL of the proxy to use
   # @param [Object] log The destination for logs
   def initialize(contract: USDT, chain: 1, log: $stdout,
                  host: nil, port: 443, path: '/', ssl: true,
-                 faraday: nil)
+                 proxy: nil)
     @contract = contract
     @host = host
     @port = port
@@ -60,7 +61,7 @@ class ERC20::Wallet
     @path = path
     @log = log
     @chain = chain
-    @faraday = faraday
+    @proxy = proxy
   end
 
   # Get balance of a public address.
@@ -184,7 +185,19 @@ class ERC20::Wallet
 
   def jsonrpc
     JSONRPC.logger = Loog::NULL
-    JSONRPC::Client.new(url, connection: @faraday || nil)
+    connection =
+      if @proxy
+        uri = URI.parse(@proxy)
+        Faraday.new do |f|
+          f.adapter(Faraday.default_adapter)
+          f.proxy = {
+            uri: "#{uri.scheme}://#{uri.hostname}:#{uri.port}",
+            user: uri.user,
+            password: uri.password
+          }
+        end
+      end
+    JSONRPC::Client.new(url, connection:)
   end
 
   def gas_estimate(from, data)
