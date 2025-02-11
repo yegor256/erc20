@@ -162,9 +162,10 @@ class TestWallet < Minitest::Test
   def test_accepts_payments_on_mainnet
     connected = []
     failed = false
+    net = mainnet
     daemon =
       Thread.new do
-        mainnet.accept([STABLE], connected:) do |_|
+        net.accept([STABLE], connected:) do |_|
           # ignore it
         end
       rescue StandardError => e
