@@ -63,12 +63,13 @@ class TestWallet < Minitest::Test
   end
 
   def test_fails_with_invalid_infura_key
+    skip('Apparently, even with invalid key, Infura returns balance')
     w = ERC20::Wallet.new(
       host: 'mainnet.infura.io',
       http_path: '/v3/invalid-key-here',
       log: loog
     )
-    assert_raises(StandardError) { w.balance(STABLE) }
+    assert_raises(StandardError) { p w.balance(STABLE) }
   end
 
   def test_checks_balance_on_testnet
@@ -113,6 +114,7 @@ class TestWallet < Minitest::Test
       assert_operator(wallet.balance(from), :>, sum * 2)
       txn = wallet.pay(JEFF, to, sum)
       assert_equal(66, txn.length)
+      assert_match(/^0x[a-f0-9]{64}$/, txn)
       assert_equal(before + sum, wallet.balance(to))
     end
   end

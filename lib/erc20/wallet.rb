@@ -118,7 +118,7 @@ class ERC20::Wallet
         jsonrpc.eth_sendRawTransaction(hex)
       end
     @log.debug("Sent #{amount} from #{from} to #{address}: #{tnx}")
-    tnx
+    tnx.downcase
   end
 
   # Wait for incoming transactions and let the block know when they
@@ -179,7 +179,7 @@ class ERC20::Wallet
                 amount: event['data'].to_i(16),
                 from: "0x#{event['topics'][1][26..].downcase}",
                 to: "0x#{event['topics'][2][26..].downcase}",
-                txn: event['transactionHash']
+                txn: event['transactionHash'].downcase
               }
               log.debug("Payment of #{event[:amount]} tokens arrived from #{event[:from]} to #{event[:to]}")
             end
