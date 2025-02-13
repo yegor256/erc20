@@ -143,7 +143,7 @@ class ERC20::Wallet
       ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {})
       log = @log
       contract = @contract
-      id = 42
+      id = rand(99_999)
       attempt = []
       ws.on(:open) do
         verbose do
