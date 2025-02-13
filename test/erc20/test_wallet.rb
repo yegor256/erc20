@@ -203,7 +203,7 @@ class TestWallet < Minitest::Test
   private
 
   def loog
-    ENV['RAKE'] ? Loog::NULL : Loog::VERBOSE
+    ENV['RAKE'] ? Loog::ERRORS : Loog::VERBOSE
   end
 
   def wait_for

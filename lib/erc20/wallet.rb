@@ -129,11 +129,11 @@ class ERC20::Wallet
     EM.run do
       u = url(http: false)
       @log.debug("Connecting to #{u}...")
-      ws = Faye::WebSocket::Client.new(u, [], proxy: @proxy ? { origin: @proxy } : {})
+      ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {})
       log = @log
       contract = @contract
       ws.on(:open) do
-        log.debug("Connected to #{@host}")
+        log.debug("Connected to #{u.hostname}")
         ws.send(
           {
             jsonrpc: '2.0',
@@ -154,6 +154,9 @@ class ERC20::Wallet
         )
         connected.append(1)
         log.debug("Subscribed to #{addresses.count} addresses")
+      rescue StandardError => e
+        log.error(Backtrace.new(e).to_s)
+        raise e
       end
       ws.on(:message) do |msg|
         data =
@@ -174,12 +177,21 @@ class ERC20::Wallet
           log.debug("New event arrived from #{event['address']}")
           yield event
         end
+      rescue StandardError => e
+        log.error(Backtrace.new(e).to_s)
+        raise e
       end
       ws.on(:close) do |_e|
-        log.debug("Disconnected from #{@host}")
+        log.debug("Disconnected from #{u.hostname}")
+      rescue StandardError => e
+        log.error(Backtrace.new(e).to_s)
+        raise e
       end
       ws.on(:error) do |e|
-        log.debug("Error at #{@host}: #{e.message}")
+        log.debug("Error at #{u.hostname}: #{e.message}")
+      rescue StandardError => e
+        log.error(Backtrace.new(e).to_s)
+        raise e
       end
     end
   end
@@ -187,7 +199,7 @@ class ERC20::Wallet
   private
 
   def url(http: true)
-    "#{http ? 'http' : 'ws'}#{@ssl ? 's' : ''}://#{@host}:#{@port}#{http ? @http_path : @ws_path}"
+    URI.parse("#{http ? 'http' : 'ws'}#{@ssl ? 's' : ''}://#{@host}:#{@port}#{http ? @http_path : @ws_path}")
   end
 
   def jsonrpc
