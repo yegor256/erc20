@@ -111,7 +111,8 @@ class TestWallet < Minitest::Test
       sum = 42_000
       from = Eth::Key.new(priv: JEFF).address.to_s
       assert_operator(wallet.balance(from), :>, sum * 2)
-      wallet.pay(JEFF, to, sum)
+      txn = wallet.pay(JEFF, to, sum)
+      assert_equal(66, txn.length)
       assert_equal(before + sum, wallet.balance(to))
     end
   end
