@@ -122,39 +122,27 @@ class ERC20::Wallet
   # thread. It will never finish. In order to stop it, you should do
   # +Thread.kill+.
   #
+  # The array with the list of addresses (+addresses+) may change its
+  # content on-fly. The +accept()+ method will +eht_subscribe+ to the addresses
+  # that are added and will +eth_unsubscribe+ from those that are removed.
+  # Once we actually start listening, the +active+ array will be updated
+  # with the list of addresses.
+  #
   # @param [Array<String>] addresses Addresses to monitor
-  # @param [Array] ready When connected, TRUE will be added to this array
+  # @param [Array] active List of addresses that we are actually listening to
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
-  def accept(addresses, connected: [], raw: false)
+  # @param [Integer] delay How many seconds to wait between +eth_subscribe+ calls
+  def accept(addresses, active = [], raw: false, delay: 1)
     EventMachine.run do
       u = url(http: false)
       @log.debug("Connecting to #{u.hostname}:#{u.port}...")
       ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {})
       log = @log
       contract = @contract
-      id = nil
+      id = 42
+      attempt = []
       ws.on(:open) do
-        connected.append(1)
         log.debug("Connected to #{u.hostname}:#{u.port}")
-        ws.send(
-          {
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'eth_subscribe',
-            params: [
-              'logs',
-              {
-                address: contract,
-                topics: [
-                  '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
-                  nil,
-                  addresses.map { |a| "0x000000000000000000000000#{a[2..]}" }
-                ]
-              }
-            ]
-          }.to_json
-        )
-        log.debug("Requested to subscribe to #{addresses.count} addresses")
       rescue StandardError => e
         log.error(Backtrace.new(e).to_s)
         raise e
@@ -167,8 +155,9 @@ class ERC20::Wallet
             {}
           end
         if data['id']
-          id = data['id']
-          log.debug("Subscribed, subscription ID is #{id}")
+          active.push(*attempt.sort)
+          active.uniq!
+          log.debug("Subscribed ##{id} to #{active.count} addresses: #{active.map { |a| a[0..6] }.join(', ')}")
         elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
           event = data['params']['result']
           if raw
@@ -198,6 +187,32 @@ class ERC20::Wallet
       rescue StandardError => e
         log.error(Backtrace.new(e).to_s)
         raise e
+      end
+      EventMachine.add_periodic_timer(delay) do
+        next if active == addresses.sort
+        attempt = addresses
+        ws.send(
+          {
+            jsonrpc: '2.0',
+            id:,
+            method: 'eth_subscribe',
+            params: [
+              'logs',
+              {
+                address: contract,
+                topics: [
+                  '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+                  nil,
+                  addresses.map { |a| "0x000000000000000000000000#{a[2..]}" }
+                ]
+              }
+            ]
+          }.to_json
+        )
+        log.debug(
+          "Requested to subscribe ##{id} to #{addresses.count} addresses: " \
+          "#{addresses.map { |a| a[0..6] }.join(', ')}"
+        )
       end
     end
   end

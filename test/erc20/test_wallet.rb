@@ -110,17 +110,17 @@ class TestWallet < Minitest::Test
     walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
     jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
     on_hardhat do |wallet|
-      connected = []
+      active = []
       event = nil
       daemon =
         Thread.new do
-          wallet.accept([walter, jeff], connected:) do |e|
+          wallet.accept([walter, jeff], active) do |e|
             event = e
           end
         rescue StandardError => e
           loog.error(Backtrace.new(e))
         end
-      wait_for { !connected.empty? }
+      wait_for { !active.empty? }
       sum = 77_000
       wallet.pay(JEFF, walter, sum)
       wait_for { !event.nil? }
@@ -132,23 +132,55 @@ class TestWallet < Minitest::Test
     end
   end
 
+  def test_accepts_payments_on_changing_addresses_on_hardhat
+    walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
+    jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
+    addresses = [walter]
+    on_hardhat do |wallet|
+      active = []
+      event = nil
+      daemon =
+        Thread.new do
+          wallet.accept(addresses, active) do |e|
+            event = e
+          end
+        rescue StandardError => e
+          loog.error(Backtrace.new(e))
+        end
+      wait_for { active.include?(walter) }
+      sum1 = 453_000
+      wallet.pay(JEFF, walter, sum1)
+      wait_for { !event.nil? }
+      assert_equal(sum1, event[:amount])
+      sum2 = 22_000
+      event = nil
+      addresses.append(jeff)
+      wait_for { active.include?(jeff) }
+      wallet.pay(WALTER, jeff, sum2)
+      wait_for { !event.nil? }
+      assert_equal(sum2, event[:amount])
+      daemon.kill
+      daemon.join(30)
+    end
+  end
+
   def test_accepts_payments_on_hardhat_via_proxy
     via_proxy do |proxy|
       walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
       jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
       on_hardhat do |w|
         wallet = through_proxy(w, proxy)
-        connected = []
+        active = []
         event = nil
         daemon =
           Thread.new do
-            wallet.accept([walter, jeff], connected:) do |e|
+            wallet.accept([walter, jeff], active) do |e|
               event = e
             end
           rescue StandardError => e
             loog.error(Backtrace.new(e))
           end
-        wait_for { !connected.empty? }
+        wait_for { !active.empty? }
         sum = 55_000
         wallet.pay(JEFF, walter, sum)
         wait_for { !event.nil? }
@@ -160,19 +192,19 @@ class TestWallet < Minitest::Test
   end
 
   def test_accepts_payments_on_mainnet
-    connected = []
+    active = []
     failed = false
     net = mainnet
     daemon =
       Thread.new do
-        net.accept([STABLE], connected:) do |_|
+        net.accept([STABLE], active) do |_|
           # ignore it
         end
       rescue StandardError => e
         failed = true
         loog.error(Backtrace.new(e))
       end
-    wait_for { !connected.empty? }
+    wait_for { !active.empty? }
     daemon.kill
     daemon.join(30)
     refute(failed)
