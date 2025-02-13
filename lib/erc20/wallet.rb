@@ -126,7 +126,7 @@ class ERC20::Wallet
   # @param [Array] ready When connected, TRUE will be added to this array
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
   def accept(addresses, connected: [], raw: false)
-    EM.run do
+    EventMachine.run do
       u = url(http: false)
       @log.debug("Connecting to #{u.hostname}:#{u.port}...")
       ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {})
