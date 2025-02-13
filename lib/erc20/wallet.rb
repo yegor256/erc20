@@ -65,6 +65,7 @@ class ERC20::Wallet
     @log = log
     @chain = chain
     @proxy = proxy
+    @mutex = Mutex.new
   end
 
   # Get balance of a public address.
@@ -98,23 +99,26 @@ class ERC20::Wallet
     data = "0x#{func}#{to_padded}#{amt_padded}"
     key = Eth::Key.new(priv: priv)
     from = key.address
-    nonce = jsonrpc.eth_getTransactionCount(from, 'pending').to_i(16)
-    tx = Eth::Tx.new(
-      {
-        nonce:,
-        gas_price: gas_price || gas_best_price,
-        gas_limit: gas_limit || gas_estimate(from, data),
-        to: @contract,
-        value: 0,
-        data: data,
-        chain_id: @chain
-      }
-    )
-    tx.sign(key)
-    hex = "0x#{tx.hex}"
-    jsonrpc.eth_sendRawTransaction(hex)
-    @log.debug("Sent #{amount} from #{from} to #{address}: #{hex}")
-    hex
+    tnx =
+      @mutex.synchronize do
+        nonce = jsonrpc.eth_getTransactionCount(from, 'pending').to_i(16)
+        tx = Eth::Tx.new(
+          {
+            nonce:,
+            gas_price: gas_price || gas_best_price,
+            gas_limit: gas_limit || gas_estimate(from, data),
+            to: @contract,
+            value: 0,
+            data: data,
+            chain_id: @chain
+          }
+        )
+        tx.sign(key)
+        hex = "0x#{tx.hex}"
+        jsonrpc.eth_sendRawTransaction(hex)
+      end
+    @log.debug("Sent #{amount} from #{from} to #{address}: #{tnx}")
+    tnx
   end
 
   # Wait for incoming transactions and let the block know when they

@@ -116,6 +116,19 @@ class TestWallet < Minitest::Test
     end
   end
 
+  def test_pays_on_hardhat_in_threads
+    on_hardhat do |wallet|
+      to = Eth::Key.new(priv: WALTER).address.to_s
+      before = wallet.balance(to)
+      sum = 42_000
+      mul = 10
+      Threads.new(mul).assert do
+        wallet.pay(JEFF, to, sum)
+      end
+      assert_equal(before + (sum * mul), wallet.balance(to))
+    end
+  end
+
   def test_accepts_payments_on_hardhat
     walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
     jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
