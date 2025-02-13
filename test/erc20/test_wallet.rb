@@ -39,7 +39,7 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWallet < Minitest::Test
-  # At this address, in Etherium mainnet, there are a few USDT tokens. I won't
+  # At this address, in Etherium mainnet, there are a ~$27 USDT. I won't
   # move them anyway, that's why tests can use this address forever.
   STABLE = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
 
