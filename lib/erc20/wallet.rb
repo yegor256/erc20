@@ -31,7 +31,7 @@ require_relative '../erc20'
 
 # A wallet.
 #
-# It is NOT thread-safe!
+# Objects of this class are thread-safe.
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko

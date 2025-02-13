@@ -28,6 +28,7 @@ require 'loog'
 require 'minitest/autorun'
 require 'random-port'
 require 'shellwords'
+require 'threads'
 require 'typhoeus'
 require_relative '../../lib/erc20'
 require_relative '../../lib/erc20/wallet'
@@ -91,6 +92,15 @@ class TestWallet < Minitest::Test
     on_hardhat do |wallet|
       b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
       assert_equal(123_000_100_000, b)
+    end
+  end
+
+  def test_checks_balance_on_hardhat_in_threads
+    on_hardhat do |wallet|
+      Threads.new.assert do
+        b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
+        assert_equal(123_000_100_000, b)
+      end
     end
   end
 
