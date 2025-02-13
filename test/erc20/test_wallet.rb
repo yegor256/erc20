@@ -153,6 +153,7 @@ class TestWallet < Minitest::Test
       assert_equal(sum, event[:amount])
       assert_equal(jeff, event[:from])
       assert_equal(walter, event[:to])
+      assert_equal(66, event[:txn].length)
     end
   end
 

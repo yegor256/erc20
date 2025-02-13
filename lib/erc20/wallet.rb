@@ -178,7 +178,8 @@ class ERC20::Wallet
               event = {
                 amount: event['data'].to_i(16),
                 from: "0x#{event['topics'][1][26..].downcase}",
-                to: "0x#{event['topics'][2][26..].downcase}"
+                to: "0x#{event['topics'][2][26..].downcase}",
+                txn: event['transactionHash']
               }
               log.debug("Payment of #{event[:amount]} tokens arrived from #{event[:from]} to #{event[:to]}")
             end
