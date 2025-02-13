@@ -133,7 +133,7 @@ class ERC20::Wallet
   # with the list of addresses.
   #
   # Both +addresses+ and +active+ must have two methods implemented: +to_a()+
-  # and +append()+.
+  # and +append()+. Only these methods will be called.
   #
   # @param [Array<String>] addresses Addresses to monitor
   # @param [Array] active List of addresses that we are actually listening to
