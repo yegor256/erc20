@@ -132,7 +132,9 @@ class ERC20::Wallet
       ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {})
       log = @log
       contract = @contract
+      id = nil
       ws.on(:open) do
+        connected.append(1)
         log.debug("Connected to #{u.hostname}:#{u.port}")
         ws.send(
           {
@@ -152,8 +154,7 @@ class ERC20::Wallet
             ]
           }.to_json
         )
-        connected.append(1)
-        log.debug("Subscribed to #{addresses.count} addresses")
+        log.debug("Requested to subscribe to #{addresses.count} addresses")
       rescue StandardError => e
         log.error(Backtrace.new(e).to_s)
         raise e
@@ -165,7 +166,10 @@ class ERC20::Wallet
           rescue StandardError
             {}
           end
-        if data['method'] == 'eth_subscription' && data.dig('params', 'result')
+        if data['id']
+          id = data['id']
+          log.debug("Subscribed, subscription ID is #{id}")
+        elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
           event = data['params']['result']
           if raw
             log.debug("New event arrived from #{event['address']}")
@@ -175,7 +179,7 @@ class ERC20::Wallet
               from: "0x#{event['topics'][1][26..].downcase}",
               to: "0x#{event['topics'][2][26..].downcase}"
             }
-            log.debug("Payment of #{event[:amount]} from #{event[:from]} to #{event[:to]}")
+            log.debug("Payment of #{event[:amount]} tokens arrived from #{event[:from]} to #{event[:to]}")
           end
           yield event
         end
