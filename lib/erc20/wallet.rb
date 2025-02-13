@@ -147,7 +147,7 @@ class ERC20::Wallet
       attempt = []
       ws.on(:open) do
         verbose do
-          log.debug("Connected to #{u.hostname}:#{u.port}")
+          log.debug("Connected to ws://#{u.hostname}:#{u.port}")
         end
       end
       ws.on(:message) do |msg|
@@ -180,7 +180,7 @@ class ERC20::Wallet
       end
       ws.on(:close) do
         verbose do
-          log.debug("Disconnected from #{u.hostname}:#{u.port}")
+          log.debug("Disconnected from ws://#{u.hostname}:#{u.port}")
         end
       end
       ws.on(:error) do |e|
