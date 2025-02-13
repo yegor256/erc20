@@ -142,51 +142,47 @@ class ERC20::Wallet
       id = 42
       attempt = []
       ws.on(:open) do
-        log.debug("Connected to #{u.hostname}:#{u.port}")
-      rescue StandardError => e
-        log.error(Backtrace.new(e).to_s)
-        raise e
+        verbose do
+          log.debug("Connected to #{u.hostname}:#{u.port}")
+        end
       end
       ws.on(:message) do |msg|
-        data =
-          begin
-            JSON.parse(msg.data)
-          rescue StandardError
-            {}
+        verbose do
+          data =
+            begin
+              JSON.parse(msg.data)
+            rescue StandardError
+              {}
+            end
+          if data['id']
+            active.push(*attempt.sort)
+            active.uniq!
+            log.debug("Subscribed ##{id} to #{active.count} addresses: #{active.map { |a| a[0..6] }.join(', ')}")
+          elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
+            event = data['params']['result']
+            if raw
+              log.debug("New event arrived from #{event['address']}")
+            else
+              event = {
+                amount: event['data'].to_i(16),
+                from: "0x#{event['topics'][1][26..].downcase}",
+                to: "0x#{event['topics'][2][26..].downcase}"
+              }
+              log.debug("Payment of #{event[:amount]} tokens arrived from #{event[:from]} to #{event[:to]}")
+            end
+            yield event
           end
-        if data['id']
-          active.push(*attempt.sort)
-          active.uniq!
-          log.debug("Subscribed ##{id} to #{active.count} addresses: #{active.map { |a| a[0..6] }.join(', ')}")
-        elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
-          event = data['params']['result']
-          if raw
-            log.debug("New event arrived from #{event['address']}")
-          else
-            event = {
-              amount: event['data'].to_i(16),
-              from: "0x#{event['topics'][1][26..].downcase}",
-              to: "0x#{event['topics'][2][26..].downcase}"
-            }
-            log.debug("Payment of #{event[:amount]} tokens arrived from #{event[:from]} to #{event[:to]}")
-          end
-          yield event
         end
-      rescue StandardError => e
-        log.error(Backtrace.new(e).to_s)
-        raise e
       end
-      ws.on(:close) do |_e|
-        log.debug("Disconnected from #{u.hostname}:#{u.port}")
-      rescue StandardError => e
-        log.error(Backtrace.new(e).to_s)
-        raise e
+      ws.on(:close) do
+        verbose do
+          log.debug("Disconnected from #{u.hostname}:#{u.port}")
+        end
       end
       ws.on(:error) do |e|
-        log.debug("Error at #{u.hostname}: #{e.message}")
-      rescue StandardError => e
-        log.error(Backtrace.new(e).to_s)
-        raise e
+        verbose do
+          log.debug("Error at #{u.hostname}: #{e.message}")
+        end
       end
       EventMachine.add_periodic_timer(delay) do
         next if active == addresses.sort
@@ -218,6 +214,13 @@ class ERC20::Wallet
   end
 
   private
+
+  def verbose
+    yield
+  rescue StandardError => e
+    @log.error(Backtrace.new(e).to_s)
+    raise e
+  end
 
   def url(http: true)
     URI.parse("#{http ? 'http' : 'ws'}#{@ssl ? 's' : ''}://#{@host}:#{@port}#{http ? @http_path : @ws_path}")
