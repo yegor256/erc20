@@ -29,7 +29,7 @@ require 'loog'
 require 'uri'
 require_relative '../erc20'
 
-# A wallet.
+# A wallet with ERC20 tokens on Etherium.
 #
 # Objects of this class are thread-safe.
 #
@@ -87,7 +87,7 @@ class ERC20::Wallet
   # @param [String] priv Private key, in hex
   # @param [String] address Public key, in hex
   # @param [Integer] amount The amount of ERC20 tokens to send
-  # @param [Integer] gas_limit How much gas you are ready to spend
+  # @param [Integer] gas_limit How much gas you're ready to spend
   # @param [Integer] gas_price How much gas you pay per computation unit
   # @return [String] Transaction hash
   def pay(priv, address, amount, gas_limit: nil, gas_price: nil)
