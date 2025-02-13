@@ -158,9 +158,9 @@ class TestWallet < Minitest::Test
   def test_accepts_payments_on_changing_addresses_on_hardhat
     walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
     jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
-    addresses = [walter]
+    addresses = Primitivo.new([walter])
     on_hardhat do |wallet|
-      active = []
+      active = Primitivo.new([])
       event = nil
       daemon =
         Thread.new do
@@ -170,7 +170,7 @@ class TestWallet < Minitest::Test
         rescue StandardError => e
           loog.error(Backtrace.new(e))
         end
-      wait_for { active.include?(walter) }
+      wait_for { active.to_a.include?(walter) }
       sum1 = 453_000
       wallet.pay(JEFF, walter, sum1)
       wait_for { !event.nil? }
@@ -178,7 +178,7 @@ class TestWallet < Minitest::Test
       sum2 = 22_000
       event = nil
       addresses.append(jeff)
-      wait_for { active.include?(jeff) }
+      wait_for { active.to_a.include?(jeff) }
       wallet.pay(WALTER, jeff, sum2)
       wait_for { !event.nil? }
       assert_equal(sum2, event[:amount])
@@ -366,6 +366,20 @@ class TestWallet < Minitest::Test
         )
         yield wallet
       end
+    end
+  end
+
+  class Primitivo
+    def initialize(array)
+      @array = array
+    end
+
+    def to_a
+      @array.to_a
+    end
+
+    def append(item)
+      @array.append(item)
     end
   end
 end

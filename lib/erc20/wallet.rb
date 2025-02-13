@@ -132,6 +132,9 @@ class ERC20::Wallet
   # Once we actually start listening, the +active+ array will be updated
   # with the list of addresses.
   #
+  # Both +addresses+ and +active+ must have two methods implemented: +to_a()+
+  # and +append()+.
+  #
   # @param [Array<String>] addresses Addresses to monitor
   # @param [Array] active List of addresses that we are actually listening to
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
@@ -159,9 +162,14 @@ class ERC20::Wallet
               {}
             end
           if data['id']
-            active.push(*attempt.sort)
-            active.uniq!
-            log.debug("Subscribed ##{id} to #{active.count} addresses: #{active.map { |a| a[0..6] }.join(', ')}")
+            before = active.to_a
+            attempt.each do |a|
+              active.append(a) unless before.include?(a)
+            end
+            log.debug(
+              "Subscribed ##{id} to #{active.to_a.size} addresses: " \
+              "#{active.to_a.map { |a| a[0..6] }.join(', ')}"
+            )
           elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
             event = data['params']['result']
             if raw
@@ -189,8 +197,8 @@ class ERC20::Wallet
         end
       end
       EventMachine.add_periodic_timer(delay) do
-        next if active == addresses.sort
-        attempt = addresses
+        next if active.to_a.sort == addresses.to_a.sort
+        attempt = addresses.to_a
         ws.send(
           {
             jsonrpc: '2.0',
@@ -203,15 +211,15 @@ class ERC20::Wallet
                 topics: [
                   '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
                   nil,
-                  addresses.map { |a| "0x000000000000000000000000#{a[2..]}" }
+                  addresses.to_a.map { |a| "0x000000000000000000000000#{a[2..]}" }
                 ]
               }
             ]
           }.to_json
         )
         log.debug(
-          "Requested to subscribe ##{id} to #{addresses.count} addresses: " \
-          "#{addresses.map { |a| a[0..6] }.join(', ')}"
+          "Requested to subscribe ##{id} to #{addresses.to_a.size} addresses: " \
+          "#{addresses.to_a.map { |a| a[0..6] }.join(', ')}"
         )
       end
     end
