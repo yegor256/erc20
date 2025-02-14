@@ -30,7 +30,6 @@ require 'random-port'
 require 'shellwords'
 require 'threads'
 require 'typhoeus'
-require_relative '../../lib/erc20'
 require_relative '../../lib/erc20/wallet'
 require_relative '../test__helper'
 

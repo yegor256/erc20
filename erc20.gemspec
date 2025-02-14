@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 require 'English'
-require_relative 'lib/erc20'
+require_relative 'lib/erc20/erc20'
 
 Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new('>= 0') if s.respond_to? :required_rubygems_version=

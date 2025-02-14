@@ -31,8 +31,8 @@ release:
     [[ "${tag}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit -1
     DONCE_SUDO=true bundle exec rake
     rm -rf *.gem
-    sed -i "s/0\.0\.0/${tag}/g" lib/erc20.rb
-    git add lib/erc20.rb
+    sed -i "s/0\.0\.0/${tag}/g" lib/erc20/erc20.rb
+    git add lib/erc20/erc20.rb
     git commit -m "version set to ${tag}"
     gem build erc20.gemspec
     chmod 0600 ../rubygems.yml

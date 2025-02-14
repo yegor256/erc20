@@ -27,11 +27,48 @@ require 'json'
 require 'jsonrpc/client'
 require 'loog'
 require 'uri'
-require_relative '../erc20'
+require_relative 'erc20'
 
 # A wallet with ERC20 tokens on Etherium.
 #
 # Objects of this class are thread-safe.
+#
+# In order to check the balance of ERC20 address:
+#
+#  require 'erc20'
+#  w = ERC20::Wallet.new(
+#    contract: ERC20::Wallet.USDT, # hex of it
+#    host: 'mainnet.infura.io',
+#    http_path: '/v3/<your-infura-key>',
+#    ws_path: '/ws/v3/<your-infura-key>',
+#    log: $stdout
+#  )
+#  usdt = w.balance(address)
+#
+# In order to send a payment:
+#
+#  hex = w.pay(private_key, to_address, amount)
+#
+# In order to catch incoming payments to a set of addresses:
+#
+#  addresses = ['0x...', '0x...']
+#  w.accept(addresses) do |event|
+#    puts event[:txt] # hash of transaction
+#    puts event[:amount] # how much, in tokens (1000000 = $1 USDT)
+#    puts event[:from] # who sent the payment
+#    puts event[:to] # who was the receiver
+#  end
+#
+# To connect to the server via HTTP proxy with basic authentication:
+#
+#  w = ERC20::Wallet.new(
+#    host: 'go.getblock.io',
+#    http_path: '/<your-rpc-getblock-key>',
+#    ws_path: '/<your-ws-getblock-key>',
+#    proxy: 'http://jeffrey:swordfish@example.com:3128' # here!
+#  )
+#
+# More information in our README.
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
