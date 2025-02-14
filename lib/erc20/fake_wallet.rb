@@ -32,13 +32,16 @@ class ERC20::FakeWallet
   # Fakes:
   attr_reader :host, :port, :ssl, :chain, :contract, :ws_path, :http_path
 
-  @host = 'example.com'
-  @port = 443
-  @ssl = true
-  @chain = 1
-  @contract = ERC20::Wallet::USDT
-  @ws_path = '/'
-  @http_path = '/'
+  # Ctor.
+  def initialize
+    @host = 'example.com'
+    @port = 443
+    @ssl = true
+    @chain = 1
+    @contract = ERC20::Wallet::USDT
+    @ws_path = '/'
+    @http_path = '/'
+  end
 
   # Get balance of a public address.
   #

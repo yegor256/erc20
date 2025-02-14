@@ -43,6 +43,10 @@ class TestFakeWallet < Minitest::Test
     refute_nil(b)
   end
 
+  def test_returns_host
+    assert_equal('example.com', ERC20::FakeWallet.new.host)
+  end
+
   def test_pays_fake_money
     priv = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
     to = '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'
