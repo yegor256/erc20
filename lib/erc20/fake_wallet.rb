@@ -77,7 +77,7 @@ class ERC20::FakeWallet
           {
             amount: 424_242,
             from: '0xd5ff1bfcde7a03da61ad229d962c74f1ea2f16a5',
-            to: addresses.sample,
+            to: addresses.to_a.sample,
             txn: '0x172de9cda30537eae68ab4a96163ebbb8f8a85293b8737dd2e5deb4714b14623'
           }
         end

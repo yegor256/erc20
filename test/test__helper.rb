@@ -40,6 +40,21 @@ if ENV['RAKE']
   Minitest::Retry.use!(methods_to_skip: [])
 end
 
+# Primitive array.
+class Primitivo
+  def initialize(array)
+    @array = array
+  end
+
+  def to_a
+    @array.to_a
+  end
+
+  def append(item)
+    @array.append(item)
+  end
+end
+
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko

@@ -56,17 +56,18 @@ class TestFakeWallet < Minitest::Test
   end
 
   def test_accepts_payments_on_hardhat
-    active = []
+    active = Primitivo.new([])
+    addresses = Primitivo.new(['0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'])
     event = nil
     daemon =
       Thread.new do
-        ERC20::FakeWallet.new.accept(['0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'], active) do |e|
+        ERC20::FakeWallet.new.accept(addresses, active) do |e|
           event = e
         end
       rescue StandardError => e
         loog.error(Backtrace.new(e))
       end
-    wait_for { !active.empty? }
+    wait_for { !active.to_a.empty? }
     daemon.kill
     daemon.join(30)
     refute_nil(event)

@@ -352,18 +352,4 @@ class TestWallet < Minitest::Test
       end
     end
   end
-
-  class Primitivo
-    def initialize(array)
-      @array = array
-    end
-
-    def to_a
-      @array.to_a
-    end
-
-    def append(item)
-      @array.append(item)
-    end
-  end
 end
