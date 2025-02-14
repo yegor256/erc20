@@ -38,9 +38,9 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWallet < Minitest::Test
-  # At this address, in Etherium mainnet, there are a ~$27 USDT. I won't
+  # At this address, in Etherium mainnet, there are $8 USDT. I won't
   # move them anyway, that's why tests can use this address forever.
-  STABLE = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
+  STABLE = '0x7232148927F8a580053792f44D4d59d40Fd00ABD'
 
   # One guy private hex.
   JEFF = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
@@ -51,7 +51,7 @@ class TestWallet < Minitest::Test
   def test_checks_balance_on_mainnet
     b = mainnet.balance(STABLE)
     refute_nil(b)
-    assert_equal(27_258_889, b)
+    assert_equal(8_000_000, b)
   end
 
   def test_checks_balance_of_absent_address
@@ -253,7 +253,7 @@ class TestWallet < Minitest::Test
           host: 'mainnet.infura.io', http_path: "/v3/#{env('INFURA_KEY')}",
           proxy:, log: loog
         )
-        assert_equal(27_258_889, w.balance(STABLE))
+        assert_equal(8_000_000, w.balance(STABLE))
       end
     end
   end
