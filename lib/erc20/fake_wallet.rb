@@ -45,7 +45,7 @@ class ERC20::FakeWallet
 
   # Get balance of a public address.
   #
-  # @param [String] hex Public key, in hex, starting from '0x'
+  # @param [String] _hex Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in tokens
   def balance(_hex)
     42_000_000
@@ -53,11 +53,9 @@ class ERC20::FakeWallet
 
   # Send a single payment from a private address to a public one.
   #
-  # @param [String] priv Private key, in hex
-  # @param [String] address Public key, in hex
-  # @param [Integer] amount The amount of ERC20 tokens to send
-  # @param [Integer] gas_limit How much gas you're ready to spend
-  # @param [Integer] gas_price How much gas you pay per computation unit
+  # @param [String] _priv Private key, in hex
+  # @param [String] _address Public key, in hex
+  # @param [Integer] _amount The amount of ERC20 tokens to send
   # @return [String] Transaction hash
   def pay(_priv, _address, _amount, *)
     '0x172de9cda30537eae68ab4a96163ebbb8f8a85293b8737dd2e5deb4714b14623'
