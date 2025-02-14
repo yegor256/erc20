@@ -108,7 +108,7 @@ class ERC20::Wallet
   # Get balance of a public address.
   #
   # @param [String] hex Public key, in hex, starting from '0x'
-  # @return [Integer] Balance, in
+  # @return [Integer] Balance, in tokens
   def balance(hex)
     func = '70a08231' # balanceOf
     padded = "000000000000000000000000#{hex[2..].downcase}"

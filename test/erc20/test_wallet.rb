@@ -260,25 +260,6 @@ class TestWallet < Minitest::Test
 
   private
 
-  def loog
-    ENV['RAKE'] ? Loog::ERRORS : Loog::VERBOSE
-  end
-
-  def wait_for
-    start = Time.now
-    loop do
-      sleep(0.1)
-      break if yield
-      raise 'timeout' if Time.now - start > 60
-    rescue Errno::ECONNREFUSED
-      retry
-    end
-  end
-
-  def wait_for_port(port)
-    wait_for { Typhoeus::Request.get("http://localhost:#{port}").code == 200 }
-  end
-
   def env(var)
     key = ENV.fetch(var, nil)
     skip("The #{var} environment variable is not set") if key.nil?

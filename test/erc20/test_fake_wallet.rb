@@ -20,47 +20,51 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-$stdout.sync = true
-
-require 'simplecov'
-SimpleCov.external_at_exit = true
-SimpleCov.start
-
-require 'simplecov-cobertura'
-SimpleCov.formatter = SimpleCov::Formatter::CoberturaFormatter
-
+require 'backtrace'
+require 'donce'
+require 'eth'
+require 'faraday'
+require 'loog'
 require 'minitest/autorun'
-
-require 'minitest/reporters'
-Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
-
-# To make tests retry on failure:
-if ENV['RAKE']
-  require 'minitest/retry'
-  Minitest::Retry.use!(methods_to_skip: [])
-end
+require 'random-port'
+require 'shellwords'
+require 'threads'
+require 'typhoeus'
+require_relative '../../lib/erc20/fake_wallet'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
-class Minitest::Test
-  def loog
-    ENV['RAKE'] ? Loog::ERRORS : Loog::VERBOSE
+class TestFakeWallet < Minitest::Test
+  def test_checks_fake_balance
+    b = ERC20::FakeWallet.new.balance('0xEB2fE8872A6f1eDb70a2632Effffffffffffffff')
+    refute_nil(b)
   end
 
-  def wait_for
-    start = Time.now
-    loop do
-      sleep(0.1)
-      break if yield
-      raise 'timeout' if Time.now - start > 60
-    rescue Errno::ECONNREFUSED
-      retry
-    end
+  def test_pays_fake_money
+    priv = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
+    to = '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'
+    txn = ERC20::FakeWallet.new.pay(Eth::Key.new(priv:), to, 555)
+    assert_equal(66, txn.length)
+    assert_match(/^0x[a-f0-9]{64}$/, txn)
   end
 
-  def wait_for_port(port)
-    wait_for { Typhoeus::Request.get("http://localhost:#{port}").code == 200 }
+  def test_accepts_payments_on_hardhat
+    active = []
+    event = nil
+    daemon =
+      Thread.new do
+        ERC20::FakeWallet.new.accept(['0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'], active) do |e|
+          event = e
+        end
+      rescue StandardError => e
+        loog.error(Backtrace.new(e))
+      end
+    wait_for { !active.empty? }
+    daemon.kill
+    daemon.join(30)
+    refute_nil(event)
   end
 end
