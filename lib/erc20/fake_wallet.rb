@@ -70,6 +70,9 @@ class ERC20::FakeWallet
   def accept(addresses, active = [], raw: false, delay: 1)
     addresses.to_a.each { |a| active.append(a) }
     loop do
+      sleep(delay)
+      a = addresses.to_a.sample
+      next if a.nil?
       event =
         if raw
           {}
@@ -77,12 +80,11 @@ class ERC20::FakeWallet
           {
             amount: 424_242,
             from: '0xd5ff1bfcde7a03da61ad229d962c74f1ea2f16a5',
-            to: addresses.to_a.sample,
+            to: a,
             txn: '0x172de9cda30537eae68ab4a96163ebbb8f8a85293b8737dd2e5deb4714b14623'
           }
         end
       yield event
-      sleep(delay)
     end
   end
 end

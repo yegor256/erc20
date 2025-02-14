@@ -61,13 +61,14 @@ class TestFakeWallet < Minitest::Test
     event = nil
     daemon =
       Thread.new do
-        ERC20::FakeWallet.new.accept(addresses, active) do |e|
+        ERC20::FakeWallet.new.accept(addresses, active, delay: 0.1) do |e|
           event = e
         end
       rescue StandardError => e
         loog.error(Backtrace.new(e))
       end
     wait_for { !active.to_a.empty? }
+    wait_for { !event.nil? }
     daemon.kill
     daemon.join(30)
     refute_nil(event)
