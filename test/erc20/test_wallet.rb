@@ -261,7 +261,7 @@ class TestWallet < Minitest::Test
   def test_pays_on_mainnet
     skip('This is live, must be run manually')
     w = mainnet
-    print 'Enter Etherium ERC20 private address (64 chars): '
+    print 'Enter Etherium ERC20 private key (64 chars): '
     priv = gets.chomp
     to = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
     txn = w.pay(priv, to, 1_990_000)
