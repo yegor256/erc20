@@ -97,15 +97,25 @@ class ERC20::Wallet
     raise 'Contract must be a String' unless contract.is_a?(String)
     raise 'Invalid format of the contract' unless /^0x[0-9a-fA-F]{40}$/.match?(contract)
     @contract = contract
+    raise 'Host can\'t be nil' unless host
+    raise 'Host must be a String' unless host.is_a?(String)
     @host = host
     raise 'Port can\'t be nil' unless port
     raise 'Port must be an Integer' unless port.is_a?(Integer)
     raise 'Port must be a positive Integer' unless port.positive?
     @port = port
     @ssl = ssl
+    raise 'Http_path can\'t be nil' unless http_path
+    raise 'Http_path must be a String' unless http_path.is_a?(String)
     @http_path = http_path
+    raise 'Ws_path can\'t be nil' unless ws_path
+    raise 'Ws_path must be a String' unless ws_path.is_a?(String)
     @ws_path = ws_path
+    raise 'Log can\'t be nil' unless log
     @log = log
+    raise 'Chain can\'t be nil' unless chain
+    raise 'Chain must be an Integer' unless chain.is_a?(Integer)
+    raise 'Chain must be a positive Integer' unless chain.positive?
     @chain = chain
     @proxy = proxy
     @mutex = Mutex.new
