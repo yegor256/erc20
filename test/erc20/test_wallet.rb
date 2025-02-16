@@ -38,7 +38,7 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWallet < Minitest::Test
-  # At this address, in Etherium mainnet, there are $8 USDT. I won't
+  # At this address, in Etherium mainnet, there are $8 USDT and 0.0042 ETH. I won't
   # move them anyway, that's why tests can use this address forever.
   STABLE = '0x7232148927F8a580053792f44D4d59d40Fd00ABD'
 
@@ -57,7 +57,7 @@ class TestWallet < Minitest::Test
   def test_checks_eth_balance_on_mainnet
     b = mainnet.eth_balance(STABLE)
     refute_nil(b)
-    assert_equal(0, b)
+    assert_equal(4_200_000_000_000_000, b)
   end
 
   def test_checks_balance_of_absent_address
