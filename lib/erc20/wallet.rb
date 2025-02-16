@@ -218,7 +218,7 @@ class ERC20::Wallet
     raise 'Addresses can\'t be nil' unless addresses
     raise 'Addresses must respond to .to_a()' unless addresses.respond_to?(:to_a)
     raise 'Active can\'t be nil' unless active
-    raise 'Active must respond to .append()' unless addresses.respond_to?(:append)
+    raise 'Active must respond to .append()' unless active.respond_to?(:append)
     raise 'Amount must be an Integer' unless delay.is_a?(Integer)
     raise 'Amount must be a positive Integer' unless delay.positive?
     raise 'Subscription ID must be an Integer' unless subscription_id.is_a?(Integer)
