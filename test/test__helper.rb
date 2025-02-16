@@ -64,12 +64,13 @@ class Minitest::Test
     ENV['RAKE'] ? Loog::ERRORS : Loog::VERBOSE
   end
 
-  def wait_for(seconds = 240)
+  def wait_for(seconds = 30)
     start = Time.now
     loop do
       sleep(0.1)
       break if yield
-      raise 'timeout' if Time.now - start > seconds
+      passed = Time.now - start
+      raise "Giving up after #{passed} seconds of waiting" if passed > seconds
     rescue Errno::ECONNREFUSED
       retry
     end
