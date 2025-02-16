@@ -71,6 +71,7 @@ class TestWallet < Minitest::Test
     b = mainnet.gas_required(STABLE, Eth::Key.new(priv: JEFF).address.to_s)
     refute_nil(b)
     assert_predicate(b, :positive?)
+    assert_operator(b, :>, 1000)
   end
 
   def test_checks_same_address_gas_required_on_mainnet
