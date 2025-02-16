@@ -159,22 +159,22 @@ class ERC20::Wallet
     b
   end
 
+  # How much ETH gas is required in order to send ERC20 transaction.
+  #
+  # @param [String] from The departing address, in hex
+  # @param [String] to Arriving address, in hex (it's OK to skip it)
+  # @return [Integer] How many ETH required
+  def gas_required(from, to = from)
+    gas_estimate(from, to, to_pay_data(from, 100_000))
+  end
+
   # How much ETH gas is required in order to send this ETH transaction.
   #
   # @param [String] from The departing address, in hex
-  # @param [String] to Arriving address, in hex
+  # @param [String] to Arriving address, in hex (it's OK to skip it)
   # @return [Integer] How many ETH required
-  def eth_gas_required(from, to)
+  def eth_gas_required(from, to = from)
     gas_estimate(from, to)
-  end
-
-  # How much ETH gas is required in order to send this ERC20 transaction.
-  #
-  # @param [String] from The departing address, in hex
-  # @param [String] to Arriving address, in hex
-  # @return [Integer] How many ETH required
-  def gas_required(from, to)
-    gas_estimate(from, to, to_pay_data(from, 100_000))
   end
 
   # Send a single ERC20 payment from a private address to a public one.
@@ -430,7 +430,9 @@ class ERC20::Wallet
   # public address to another public address, possible carrying some data
   # inside the transaction.
   def gas_estimate(from, to, data = '')
-    jsonrpc.eth_estimateGas({ from:, to:, data: }, 'latest').to_i(16)
+    gas = jsonrpc.eth_estimateGas({ from:, to:, data: }, 'latest').to_i(16)
+    @log.debug("Estimated gas is #{gas} ETH#{data.empty? ? '' : ', for ERC20 transfer'}")
+    gas
   end
 
   def to_pay_data(address, amount)

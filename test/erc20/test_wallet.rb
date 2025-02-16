@@ -73,6 +73,12 @@ class TestWallet < Minitest::Test
     assert_predicate(b, :positive?)
   end
 
+  def test_checks_same_address_gas_required_on_mainnet
+    b = mainnet.gas_required(STABLE, STABLE)
+    refute_nil(b)
+    assert_predicate(b, :positive?)
+  end
+
   def test_fails_with_invalid_infura_key
     skip('Apparently, even with invalid key, Infura returns balance')
     w = ERC20::Wallet.new(
@@ -102,11 +108,16 @@ class TestWallet < Minitest::Test
 
   def test_checks_gas_required_on_hardhat
     on_hardhat do |wallet|
-      b = wallet.gas_required(
+      b1 = wallet.gas_required(
         Eth::Key.new(priv: JEFF).address.to_s,
         Eth::Key.new(priv: WALTER).address.to_s
       )
-      assert_equal(21_597, b)
+      assert_equal(21_597, b1)
+      b2 = wallet.gas_required(
+        Eth::Key.new(priv: JEFF).address.to_s,
+        Eth::Key.new(priv: JEFF).address.to_s
+      )
+      assert_equal(b1, b2)
     end
   end
 
