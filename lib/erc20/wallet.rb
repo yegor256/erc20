@@ -104,6 +104,7 @@ class ERC20::Wallet
     raise 'Port must be an Integer' unless port.is_a?(Integer)
     raise 'Port must be a positive Integer' unless port.positive?
     @port = port
+    raise 'Ssl can\'t be nil' if ssl.nil?
     @ssl = ssl
     raise 'Http_path can\'t be nil' unless http_path
     raise 'Http_path must be a String' unless http_path.is_a?(String)
@@ -214,7 +215,9 @@ class ERC20::Wallet
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
   # @param [Integer] delay How many seconds to wait between +eth_subscribe+ calls
   def accept(addresses, active = [], raw: false, delay: 1)
+    raise 'Addresses can\'t be nil' unless addresses
     raise 'Addresses must respond to .to_a()' unless addresses.respond_to?(:to_a)
+    raise 'Active can\'t be nil' unless active
     raise 'Active must respond to .append()' unless addresses.respond_to?(:append)
     raise 'Amount must be an Integer' unless delay.is_a?(Integer)
     raise 'Amount must be a positive Integer' unless delay.positive?
@@ -233,12 +236,7 @@ class ERC20::Wallet
       end
       ws.on(:message) do |msg|
         verbose do
-          data =
-            begin
-              JSON.parse(msg.data)
-            rescue StandardError
-              {}
-            end
+          data = to_json(msg.data)
           if data['id']
             before = active.to_a
             attempt.each do |a|
@@ -305,6 +303,12 @@ class ERC20::Wallet
   end
 
   private
+
+  def to_json(msg)
+    JSON.parse(msg.data)
+  rescue StandardError
+    {}
+  end
 
   def verbose
     yield
