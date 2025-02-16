@@ -165,6 +165,12 @@ class ERC20::Wallet
   # @param [String] to Arriving address, in hex (it's OK to skip it)
   # @return [Integer] How many ETH required
   def gas_required(from, to = from)
+    raise 'Address can\'t be nil' unless from
+    raise 'Address must be a String' unless from.is_a?(String)
+    raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(from)
+    raise 'Address can\'t be nil' unless to
+    raise 'Address must be a String' unless to.is_a?(String)
+    raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(to)
     gas_estimate(from, to, to_pay_data(from, 100_000))
   end
 
@@ -174,6 +180,12 @@ class ERC20::Wallet
   # @param [String] to Arriving address, in hex (it's OK to skip it)
   # @return [Integer] How many ETH required
   def eth_gas_required(from, to = from)
+    raise 'Address can\'t be nil' unless from
+    raise 'Address must be a String' unless from.is_a?(String)
+    raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(from)
+    raise 'Address can\'t be nil' unless to
+    raise 'Address must be a String' unless to.is_a?(String)
+    raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(to)
     gas_estimate(from, to)
   end
 
