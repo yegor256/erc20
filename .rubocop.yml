@@ -30,7 +30,6 @@ AllCops:
 plugins:
   - rubocop-performance
   - rubocop-rake
-require:
   - rubocop-minitest
 Minitest/EmptyLineBeforeAssertionMethods:
   Enabled: false
