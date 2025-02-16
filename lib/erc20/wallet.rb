@@ -159,6 +159,24 @@ class ERC20::Wallet
     b
   end
 
+  # How much ETH gas is required in order to send this ETH transaction.
+  #
+  # @param [String] from The departing address, in hex
+  # @param [String] to Arriving address, in hex
+  # @return [Integer] How many ETH required
+  def eth_gas_required(from, to)
+    gas_estimate(from, to)
+  end
+
+  # How much ETH gas is required in order to send this ERC20 transaction.
+  #
+  # @param [String] from The departing address, in hex
+  # @param [String] to Arriving address, in hex
+  # @return [Integer] How many ETH required
+  def gas_required(from, to)
+    gas_estimate(from, to, to_pay_data(from, 100_000))
+  end
+
   # Send a single ERC20 payment from a private address to a public one.
   #
   # @param [String] priv Private key, in hex
@@ -167,7 +185,7 @@ class ERC20::Wallet
   # @param [Integer] gas_limit How much gas you're ready to spend
   # @param [Integer] gas_price How much gas you pay per computation unit
   # @return [String] Transaction hash
-  def pay(priv, address, amount, gas_limit: nil, gas_price: nil)
+  def pay(priv, address, amount, gas_limit: nil, gas_price: gas_best_price)
     raise 'Private key can\'t be nil' unless priv
     raise 'Private key must be a String' unless priv.is_a?(String)
     raise 'Invalid format of private key' unless /^[0-9a-fA-F]{64}$/.match?(priv)
@@ -185,25 +203,20 @@ class ERC20::Wallet
       raise 'Gas price must be an Integer' unless gas_price.is_a?(Integer)
       raise 'Gas price must be a positive Integer' unless gas_price.positive?
     end
-    func = 'a9059cbb' # transfer(address,uint256)
-    to_clean = address.downcase.sub(/^0x/, '')
-    to_padded = ('0' * (64 - to_clean.size)) + to_clean
-    amt_hex = amount.to_s(16)
-    amt_padded = ('0' * (64 - amt_hex.size)) + amt_hex
-    data = "0x#{func}#{to_padded}#{amt_padded}"
     key = Eth::Key.new(priv: priv)
     from = key.address.to_s
+    data = to_pay_data(address, amount)
     tnx =
       @mutex.synchronize do
         nonce = jsonrpc.eth_getTransactionCount(from, 'pending').to_i(16)
         tx = Eth::Tx.new(
           {
             nonce:,
-            gas_price: gas_price || gas_best_price,
+            gas_price: gas_price,
             gas_limit: gas_limit || gas_estimate(from, @contract, data),
             to: @contract,
             value: 0,
-            data: data,
+            data:,
             chain_id: @chain
           }
         )
@@ -223,7 +236,7 @@ class ERC20::Wallet
   # @param [Integer] gas_limit How much gas you're ready to spend
   # @param [Integer] gas_price How much gas you pay per computation unit
   # @return [String] Transaction hash
-  def eth_pay(priv, address, amount, gas_limit: nil, gas_price: nil)
+  def eth_pay(priv, address, amount, gas_limit: nil, gas_price: gas_best_price)
     raise 'Private key can\'t be nil' unless priv
     raise 'Private key must be a String' unless priv.is_a?(String)
     raise 'Invalid format of private key' unless /^[0-9a-fA-F]{64}$/.match?(priv)
@@ -243,7 +256,6 @@ class ERC20::Wallet
     end
     key = Eth::Key.new(priv: priv)
     from = key.address.to_s
-    data = ''
     tnx =
       @mutex.synchronize do
         nonce = jsonrpc.eth_getTransactionCount(from, 'pending').to_i(16)
@@ -251,11 +263,10 @@ class ERC20::Wallet
           {
             chain_id: @chain,
             nonce:,
-            gas_price: gas_price || gas_best_price,
-            gas_limit: gas_limit || gas_estimate(from, address, data),
+            gas_price: gas_price,
+            gas_limit: gas_limit || gas_estimate(from, address),
             to: address,
-            value: amount,
-            data:
+            value: amount
           }
         )
         tx.sign(key)
@@ -415,8 +426,20 @@ class ERC20::Wallet
     JSONRPC::Client.new(url, connection:)
   end
 
-  def gas_estimate(from, to, data)
+  # How much gas should be spent in order to send a transaction from one
+  # public address to another public address, possible carrying some data
+  # inside the transaction.
+  def gas_estimate(from, to, data = '')
     jsonrpc.eth_estimateGas({ from:, to:, data: }, 'latest').to_i(16)
+  end
+
+  def to_pay_data(address, amount)
+    func = 'a9059cbb' # transfer(address,uint256)
+    to_clean = address.downcase.sub(/^0x/, '')
+    to_padded = ('0' * (64 - to_clean.size)) + to_clean
+    amt_hex = amount.to_s(16)
+    amt_padded = ('0' * (64 - amt_hex.size)) + amt_hex
+    "0x#{func}#{to_padded}#{amt_padded}"
   end
 
   def gas_best_price

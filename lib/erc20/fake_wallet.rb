@@ -59,6 +59,24 @@ class ERC20::FakeWallet
     42_000_000
   end
 
+  # How much ETH gas is required in order to send this ETH transaction.
+  #
+  # @param [String] _from The departing address, in hex
+  # @param [String] _to Arriving address, in hex
+  # @return [Integer] How many ETH required
+  def eth_gas_required(_from, _to)
+    55_000
+  end
+
+  # How much ETH gas is required in order to send this ERC20 transaction.
+  #
+  # @param [String] _from The departing address, in hex
+  # @param [String] _to Arriving address, in hex
+  # @return [Integer] How many ETH required
+  def gas_required(_from, _to)
+    66_000
+  end
+
   # Send a single ERC20 payment from a private address to a public one.
   #
   # @param [String] _priv Private key, in hex

@@ -38,6 +38,22 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestFakeWallet < Minitest::Test
+  def test_checks_gas_required
+    b = ERC20::FakeWallet.new.gas_required(
+      '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff',
+      '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff'
+    )
+    refute_nil(b)
+  end
+
+  def test_checks_eth_gas_required
+    b = ERC20::FakeWallet.new.eth_gas_required(
+      '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff',
+      '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff'
+    )
+    refute_nil(b)
+  end
+
   def test_checks_fake_balance
     b = ERC20::FakeWallet.new.balance('0xEB2fE8872A6f1eDb70a2632Effffffffffffffff')
     refute_nil(b)
