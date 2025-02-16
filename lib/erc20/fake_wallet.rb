@@ -62,9 +62,9 @@ class ERC20::FakeWallet
   # How much ETH gas is required in order to send this ETH transaction.
   #
   # @param [String] _from The departing address, in hex
-  # @param [String] _to Arriving address, in hex
+  # @param [String] _to Arriving address, in hex (may be skipped)
   # @return [Integer] How many ETH required
-  def eth_gas_required(_from, _to)
+  def eth_gas_required(from, _to = from)
     55_000
   end
 
@@ -73,7 +73,7 @@ class ERC20::FakeWallet
   # @param [String] _from The departing address, in hex
   # @param [String] _to Arriving address, in hex
   # @return [Integer] How many ETH required
-  def gas_required(_from, _to)
+  def gas_required(from, _to = from)
     66_000
   end
 
