@@ -54,6 +54,12 @@ class TestWallet < Minitest::Test
     assert_equal(8_000_000, b)
   end
 
+  def test_checks_eth_balance_on_mainnet
+    b = mainnet.eth_balance(STABLE)
+    refute_nil(b)
+    assert_equal(0, b)
+  end
+
   def test_checks_balance_of_absent_address
     a = '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff'
     b = mainnet.balance(a)
@@ -92,6 +98,13 @@ class TestWallet < Minitest::Test
     on_hardhat do |wallet|
       b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
       assert_equal(123_000_100_000, b)
+    end
+  end
+
+  def test_checks_eth_balance_on_hardhat
+    on_hardhat do |wallet|
+      b = wallet.balance(Eth::Key.new(priv: WALTER).address.to_s)
+      assert_equal(456_000_000_000, b)
     end
   end
 

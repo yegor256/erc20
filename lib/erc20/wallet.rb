@@ -122,19 +122,40 @@ class ERC20::Wallet
     @mutex = Mutex.new
   end
 
-  # Get balance of a public address.
+  # Get ERC20 balance of a public address (it's not the same as ETH balance!).
   #
-  # @param [String] hex Public key, in hex, starting from '0x'
+  # An address in Etherium may have many balances. One of them is the main
+  # balance in ETH crypto. Another balance is the one kept by ERC20 contract
+  # in its own ledge in root storage. This balance is checked by this method.
+  #
+  # @param [String] address Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in tokens
-  def balance(hex)
-    raise 'Address can\'t be nil' unless hex
-    raise 'Address must be a String' unless hex.is_a?(String)
-    raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(hex)
+  def balance(address)
+    raise 'Address can\'t be nil' unless address
+    raise 'Address must be a String' unless address.is_a?(String)
+    raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(address)
     func = '70a08231' # balanceOf
-    data = "0x#{func}000000000000000000000000#{hex[2..].downcase}"
+    data = "0x#{func}000000000000000000000000#{address[2..].downcase}"
     r = jsonrpc.eth_call({ to: @contract, data: data }, 'latest')
     b = r[2..].to_i(16)
-    @log.debug("Balance of #{hex} is #{b}")
+    @log.debug("Balance of #{address} is #{b}")
+    b
+  end
+
+  # Get ETH balance of a public address.
+  #
+  # An address in Etherium may have many balances. One of them is the main
+  # balance in ETH crypto. This balance is checked by this method.
+  #
+  # @param [String] hex Public key, in hex, starting from '0x'
+  # @return [Integer] Balance, in ETH
+  def eth_balance(address)
+    raise 'Address can\'t be nil' unless address
+    raise 'Address must be a String' unless address.is_a?(String)
+    raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(address)
+    r = jsonrpc.eth_getBalance(address, 'latest')
+    b = r[2..].to_i(16)
+    @log.debug("Balance of #{address} is #{b}")
     b
   end
 

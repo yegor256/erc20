@@ -33,10 +33,6 @@ require 'typhoeus'
 require_relative '../../lib/erc20/fake_wallet'
 require_relative '../test__helper'
 
-k = Eth::Key.new
-puts k.private_hex
-puts k.address
-
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
@@ -44,6 +40,11 @@ puts k.address
 class TestFakeWallet < Minitest::Test
   def test_checks_fake_balance
     b = ERC20::FakeWallet.new.balance('0xEB2fE8872A6f1eDb70a2632Effffffffffffffff')
+    refute_nil(b)
+  end
+
+  def test_checks_fake_eth_balance
+    b = ERC20::FakeWallet.new.eth_balance('0xEB2fE8872A6f1eDb70a2632Effffffffffffffff')
     refute_nil(b)
   end
 

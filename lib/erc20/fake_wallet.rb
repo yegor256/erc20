@@ -43,11 +43,19 @@ class ERC20::FakeWallet
     @http_path = '/'
   end
 
-  # Get balance of a public address.
+  # Get ERC20 balance of a public address.
   #
   # @param [String] _hex Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in tokens
   def balance(_hex)
+    42_000_000
+  end
+
+  # Get ETH balance of a public address.
+  #
+  # @param [String] _hex Public key, in hex, starting from '0x'
+  # @return [Integer] Balance, in tokens
+  def eth_balance(_hex)
     42_000_000
   end
 
