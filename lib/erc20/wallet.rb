@@ -131,8 +131,7 @@ class ERC20::Wallet
     raise 'Address must be a String' unless hex.is_a?(String)
     raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(hex)
     func = '70a08231' # balanceOf
-    padded = "000000000000000000000000#{hex[2..].downcase}"
-    data = "0x#{func}#{padded}"
+    data = "0x#{func}000000000000000000000000#{hex[2..].downcase}"
     r = jsonrpc.eth_call({ to: @contract, data: data }, 'latest')
     b = r[2..].to_i(16)
     @log.debug("Balance of #{hex} is #{b}")
@@ -214,24 +213,27 @@ class ERC20::Wallet
   # @param [Array] active List of addresses that we are actually listening to
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
   # @param [Integer] delay How many seconds to wait between +eth_subscribe+ calls
-  def accept(addresses, active = [], raw: false, delay: 1)
+  # @param [Integer] subscription_id Unique ID of the subscription
+  def accept(addresses, active = [], raw: false, delay: 1, subscription_id: rand(99_999))
     raise 'Addresses can\'t be nil' unless addresses
     raise 'Addresses must respond to .to_a()' unless addresses.respond_to?(:to_a)
     raise 'Active can\'t be nil' unless active
     raise 'Active must respond to .append()' unless addresses.respond_to?(:append)
     raise 'Amount must be an Integer' unless delay.is_a?(Integer)
     raise 'Amount must be a positive Integer' unless delay.positive?
+    raise 'Subscription ID must be an Integer' unless subscription_id.is_a?(Integer)
+    raise 'Subscription ID must be a positive Integer' unless subscription_id.positive?
     EventMachine.run do
       u = url(http: false)
       @log.debug("Connecting to #{u.hostname}:#{u.port}...")
       ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {})
       log = @log
       contract = @contract
-      id = rand(99_999)
       attempt = []
+      log_url = "ws#{@ssl ? 's' : ''}://#{u.hostname}:#{u.port}"
       ws.on(:open) do
         verbose do
-          log.debug("Connected to ws://#{u.hostname}:#{u.port}")
+          log.debug("Connected to #{log_url}")
         end
       end
       ws.on(:message) do |msg|
@@ -243,7 +245,7 @@ class ERC20::Wallet
               active.append(a) unless before.include?(a)
             end
             log.debug(
-              "Subscribed ##{id} to #{active.to_a.size} addresses: " \
+              "Subscribed ##{subscription_id} to #{active.to_a.size} addresses at #{log_url}: " \
               "#{active.to_a.map { |a| a[0..6] }.join(', ')}"
             )
           elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
@@ -257,7 +259,10 @@ class ERC20::Wallet
                 to: "0x#{event['topics'][2][26..].downcase}",
                 txn: event['transactionHash'].downcase
               }
-              log.debug("Payment of #{event[:amount]} tokens arrived from #{event[:from]} to #{event[:to]}")
+              log.debug(
+                "Payment of #{event[:amount]} tokens arrived" \
+                "from #{event[:from]} to #{event[:to]} in #{event[:txn]}"
+              )
             end
             yield event
           end
@@ -265,12 +270,12 @@ class ERC20::Wallet
       end
       ws.on(:close) do
         verbose do
-          log.debug("Disconnected from ws://#{u.hostname}:#{u.port}")
+          log.debug("Disconnected from #{log_url}")
         end
       end
       ws.on(:error) do |e|
         verbose do
-          log.debug("Error at #{u.hostname}: #{e.message}")
+          log.debug("Error at #{log_url}: #{e.message}")
         end
       end
       EventMachine.add_periodic_timer(delay) do
@@ -279,7 +284,7 @@ class ERC20::Wallet
         ws.send(
           {
             jsonrpc: '2.0',
-            id:,
+            id: subscription_id,
             method: 'eth_subscribe',
             params: [
               'logs',
@@ -295,7 +300,7 @@ class ERC20::Wallet
           }.to_json
         )
         log.debug(
-          "Requested to subscribe ##{id} to #{addresses.to_a.size} addresses: " \
+          "Requested to subscribe ##{subscription_id} to #{addresses.to_a.size} addresses at #{log_url}: " \
           "#{addresses.to_a.map { |a| a[0..6] }.join(', ')}"
         )
       end
