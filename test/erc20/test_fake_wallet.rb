@@ -60,6 +60,14 @@ class TestFakeWallet < Minitest::Test
     assert_match(/^0x[a-f0-9]{64}$/, txn)
   end
 
+  def test_pays_fake_eths
+    priv = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
+    to = '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'
+    txn = ERC20::FakeWallet.new.eth_pay(Eth::Key.new(priv:), to, 555)
+    assert_equal(66, txn.length)
+    assert_match(/^0x[a-f0-9]{64}$/, txn)
+  end
+
   def test_accepts_payments_on_hardhat
     active = Primitivo.new([])
     addresses = Primitivo.new(['0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'])

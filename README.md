@@ -44,6 +44,16 @@ w.accept(addresses) do |event|
 end
 ```
 
+It's also possible to check ETH balance and send ETH transaction:
+
+```ruby
+# Check how many ETHs are there on the given address:
+eth = w.eth_balance(address)
+
+# Send a few ETHs to someone and get transaction hash:
+hex = w.eth_pay(private_key, to_address, amount)
+```
+
 To generate a new private key, use [eth](https://rubygems.org/gems/eth):
 
 ```ruby

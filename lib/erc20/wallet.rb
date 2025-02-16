@@ -138,7 +138,7 @@ class ERC20::Wallet
     data = "0x#{func}000000000000000000000000#{address[2..].downcase}"
     r = jsonrpc.eth_call({ to: @contract, data: data }, 'latest')
     b = r[2..].to_i(16)
-    @log.debug("Balance of #{address} is #{b}")
+    @log.debug("Balance of #{address} is #{b} ERC20 tokens")
     b
   end
 
@@ -155,11 +155,11 @@ class ERC20::Wallet
     raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(address)
     r = jsonrpc.eth_getBalance(address, 'latest')
     b = r[2..].to_i(16)
-    @log.debug("Balance of #{address} is #{b}")
+    @log.debug("Balance of #{address} is #{b} ETHs")
     b
   end
 
-  # Send a single payment from a private address to a public one.
+  # Send a single ERC20 payment from a private address to a public one.
   #
   # @param [String] priv Private key, in hex
   # @param [String] address Public key, in hex
@@ -200,7 +200,7 @@ class ERC20::Wallet
           {
             nonce:,
             gas_price: gas_price || gas_best_price,
-            gas_limit: gas_limit || gas_estimate(from, data),
+            gas_limit: gas_limit || gas_estimate(from, @contract, data),
             to: @contract,
             value: 0,
             data: data,
@@ -211,7 +211,58 @@ class ERC20::Wallet
         hex = "0x#{tx.hex}"
         jsonrpc.eth_sendRawTransaction(hex)
       end
-    @log.debug("Sent #{amount} from #{from} to #{address}: #{tnx}")
+    @log.debug("Sent #{amount} ERC20 tokens from #{from} to #{address}: #{tnx}")
+    tnx.downcase
+  end
+
+  # Send a single ETH payment from a private address to a public one.
+  #
+  # @param [String] priv Private key, in hex
+  # @param [String] address Public key, in hex
+  # @param [Integer] amount The amount of ERC20 tokens to send
+  # @param [Integer] gas_limit How much gas you're ready to spend
+  # @param [Integer] gas_price How much gas you pay per computation unit
+  # @return [String] Transaction hash
+  def eth_pay(priv, address, amount, gas_limit: nil, gas_price: nil)
+    raise 'Private key can\'t be nil' unless priv
+    raise 'Private key must be a String' unless priv.is_a?(String)
+    raise 'Invalid format of private key' unless /^[0-9a-fA-F]{64}$/.match?(priv)
+    raise 'Address can\'t be nil' unless address
+    raise 'Address must be a String' unless address.is_a?(String)
+    raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(address)
+    raise 'Amount can\'t be nil' unless amount
+    raise 'Amount must be an Integer' unless amount.is_a?(Integer)
+    raise 'Amount must be a positive Integer' unless amount.positive?
+    if gas_limit
+      raise 'Gas limit must be an Integer' unless gas_limit.is_a?(Integer)
+      raise 'Gas limit must be a positive Integer' unless gas_limit.positive?
+    end
+    if gas_price
+      raise 'Gas price must be an Integer' unless gas_price.is_a?(Integer)
+      raise 'Gas price must be a positive Integer' unless gas_price.positive?
+    end
+    key = Eth::Key.new(priv: priv)
+    from = key.address.to_s
+    data = ''
+    tnx =
+      @mutex.synchronize do
+        nonce = jsonrpc.eth_getTransactionCount(from, 'pending').to_i(16)
+        tx = Eth::Tx.new(
+          {
+            chain_id: @chain,
+            nonce:,
+            gas_price: gas_price || gas_best_price,
+            gas_limit: gas_limit || gas_estimate(from, address, data),
+            to: address,
+            value: amount,
+            data:
+          }
+        )
+        tx.sign(key)
+        hex = "0x#{tx.hex}"
+        jsonrpc.eth_sendRawTransaction(hex)
+      end
+    @log.debug("Sent #{amount} ETHs from #{from} to #{address}: #{tnx}")
     tnx.downcase
   end
 
@@ -364,8 +415,8 @@ class ERC20::Wallet
     JSONRPC::Client.new(url, connection:)
   end
 
-  def gas_estimate(from, data)
-    jsonrpc.eth_estimateGas({ from:, to: @contract, data: }, 'latest').to_i(16)
+  def gas_estimate(from, to, data)
+    jsonrpc.eth_estimateGas({ from:, to:, data: }, 'latest').to_i(16)
   end
 
   def gas_best_price

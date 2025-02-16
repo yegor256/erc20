@@ -59,13 +59,23 @@ class ERC20::FakeWallet
     42_000_000
   end
 
-  # Send a single payment from a private address to a public one.
+  # Send a single ERC20 payment from a private address to a public one.
   #
   # @param [String] _priv Private key, in hex
   # @param [String] _address Public key, in hex
   # @param [Integer] _amount The amount of ERC20 tokens to send
   # @return [String] Transaction hash
   def pay(_priv, _address, _amount, *)
+    '0x172de9cda30537eae68ab4a96163ebbb8f8a85293b8737dd2e5deb4714b14623'
+  end
+
+  # Send a single ETH payment from a private address to a public one.
+  #
+  # @param [String] _priv Private key, in hex
+  # @param [String] _address Public key, in hex
+  # @param [Integer] _amount The amount of ETHs to send
+  # @return [String] Transaction hash
+  def eth_pay(_priv, _address, _amount, *)
     '0x172de9cda30537eae68ab4a96163ebbb8f8a85293b8737dd2e5deb4714b14623'
   end
 

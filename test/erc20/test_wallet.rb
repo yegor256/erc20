@@ -131,6 +131,20 @@ class TestWallet < Minitest::Test
     end
   end
 
+  def test_eth_pays_on_hardhat
+    on_hardhat do |wallet|
+      to = Eth::Key.new(priv: WALTER).address.to_s
+      before = wallet.eth_balance(to)
+      sum = 42_000
+      from = Eth::Key.new(priv: JEFF).address.to_s
+      assert_operator(wallet.eth_balance(from), :>, sum * 2)
+      txn = wallet.eth_pay(JEFF, to, sum)
+      assert_equal(66, txn.length)
+      assert_match(/^0x[a-f0-9]{64}$/, txn)
+      assert_equal(before + sum, wallet.eth_balance(to))
+    end
+  end
+
   def test_pays_on_hardhat_in_threads
     on_hardhat do |wallet|
       to = Eth::Key.new(priv: WALTER).address.to_s
@@ -141,6 +155,19 @@ class TestWallet < Minitest::Test
         wallet.pay(JEFF, to, sum)
       end
       assert_equal(before + (sum * mul), wallet.balance(to))
+    end
+  end
+
+  def test_pays_eth_on_hardhat_in_threads
+    on_hardhat do |wallet|
+      to = Eth::Key.new(priv: WALTER).address.to_s
+      before = wallet.eth_balance(to)
+      sum = 42_000
+      mul = 10
+      Threads.new(mul).assert do
+        wallet.eth_pay(JEFF, to, sum)
+      end
+      assert_equal(before + (sum * mul), wallet.eth_balance(to))
     end
   end
 
