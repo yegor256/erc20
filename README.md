@@ -37,7 +37,7 @@ hex = w.pay(private_key, to_address, amount)
 # Stay waiting, and trigger the block when new ERC20 payments show up:
 addresses = ['0x...', '0x...'] # only wait for payments to these addresses
 w.accept(addresses) do |event|
-  puts event[:txt] # hash of transaction
+  puts event[:txn] # hash of transaction
   puts event[:amount] # how much, in tokens (1000000 = $1 USDT)
   puts event[:from] # who sent the payment
   puts event[:to] # who was the receiver
