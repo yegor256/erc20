@@ -93,8 +93,14 @@ class ERC20::Wallet
   def initialize(contract: USDT, chain: 1, log: $stdout,
                  host: nil, port: 443, http_path: '/', ws_path: '/',
                  ssl: true, proxy: nil)
+    raise 'Contract can\'t be nil' unless contract
+    raise 'Contract must be a String' unless contract.is_a?(String)
+    raise 'Invalid format of the contract' unless /^0x[0-9a-fA-F]{40}$/.match?(contract)
     @contract = contract
     @host = host
+    raise 'Port can\'t be nil' unless port
+    raise 'Port must be an Integer' unless port.is_a?(Integer)
+    raise 'Port must be a positive Integer' unless port.positive?
     @port = port
     @ssl = ssl
     @http_path = http_path
@@ -110,6 +116,9 @@ class ERC20::Wallet
   # @param [String] hex Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in tokens
   def balance(hex)
+    raise 'Address can\'t be nil' unless hex
+    raise 'Address must be a String' unless hex.is_a?(String)
+    raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(hex)
     func = '70a08231' # balanceOf
     padded = "000000000000000000000000#{hex[2..].downcase}"
     data = "0x#{func}#{padded}"
@@ -128,6 +137,23 @@ class ERC20::Wallet
   # @param [Integer] gas_price How much gas you pay per computation unit
   # @return [String] Transaction hash
   def pay(priv, address, amount, gas_limit: nil, gas_price: nil)
+    raise 'Private key can\'t be nil' unless priv
+    raise 'Private key must be a String' unless priv.is_a?(String)
+    raise 'Invalid format of private key' unless /^[0-9a-fA-F]{64}$/.match?(priv)
+    raise 'Address can\'t be nil' unless address
+    raise 'Address must be a String' unless address.is_a?(String)
+    raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(address)
+    raise 'Amount can\'t be nil' unless amount
+    raise 'Amount must be an Integer' unless amount.is_a?(Integer)
+    raise 'Amount must be a positive Integer' unless amount.positive?
+    if gas_limit
+      raise 'Gas limit must be an Integer' unless gas_limit.is_a?(Integer)
+      raise 'Gas limit must be a positive Integer' unless gas_limit.positive?
+    end
+    if gas_price
+      raise 'Gas price must be an Integer' unless gas_price.is_a?(Integer)
+      raise 'Gas price must be a positive Integer' unless gas_price.positive?
+    end
     func = 'a9059cbb' # transfer(address,uint256)
     to_clean = address.downcase.sub(/^0x/, '')
     to_padded = ('0' * (64 - to_clean.size)) + to_clean
@@ -169,14 +195,19 @@ class ERC20::Wallet
   # Once we actually start listening, the +active+ array will be updated
   # with the list of addresses.
   #
-  # Both +addresses+ and +active+ must have two methods implemented: +to_a()+
-  # and +append()+. Only these methods will be called.
+  # The +addresses+ must have +to_a()+ implemented.
+  # The +active+ must have +append()+ implemented.
+  # Only these methods will be called.
   #
   # @param [Array<String>] addresses Addresses to monitor
   # @param [Array] active List of addresses that we are actually listening to
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
   # @param [Integer] delay How many seconds to wait between +eth_subscribe+ calls
   def accept(addresses, active = [], raw: false, delay: 1)
+    raise 'Addresses must respond to .to_a()' unless addresses.respond_to?(:to_a)
+    raise 'Active must respond to .append()' unless addresses.respond_to?(:append)
+    raise 'Amount must be an Integer' unless delay.is_a?(Integer)
+    raise 'Amount must be a positive Integer' unless delay.positive?
     EventMachine.run do
       u = url(http: false)
       @log.debug("Connecting to #{u.hostname}:#{u.port}...")
