@@ -171,7 +171,7 @@ class ERC20::Wallet
     amt_padded = ('0' * (64 - amt_hex.size)) + amt_hex
     data = "0x#{func}#{to_padded}#{amt_padded}"
     key = Eth::Key.new(priv: priv)
-    from = key.address
+    from = key.address.to_s
     tnx =
       @mutex.synchronize do
         nonce = jsonrpc.eth_getTransactionCount(from, 'pending').to_i(16)
