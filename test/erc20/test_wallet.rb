@@ -51,13 +51,13 @@ class TestWallet < Minitest::Test
   def test_checks_balance_on_mainnet
     b = mainnet.balance(STABLE)
     refute_nil(b)
-    assert_equal(8_000_000, b)
+    assert_equal(8_000_000, b) # this is $8 USDT
   end
 
   def test_checks_eth_balance_on_mainnet
     b = mainnet.eth_balance(STABLE)
     refute_nil(b)
-    assert_equal(4_200_000_000_000_000, b)
+    assert_equal(4_200_000_000_000_000, b) # this is 0.0042 ETH
   end
 
   def test_checks_balance_of_absent_address
