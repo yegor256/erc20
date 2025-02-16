@@ -61,7 +61,7 @@ require 'eth'
 key = Eth::Key.new.private_hex
 ```
 
-To get address from private one:
+To convert a private key to a public address:
 
 ```ruby
 public_hex = Eth::Key.new(priv: key).address
