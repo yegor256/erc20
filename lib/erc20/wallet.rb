@@ -236,7 +236,7 @@ class ERC20::Wallet
       end
       ws.on(:message) do |msg|
         verbose do
-          data = to_json(msg.data)
+          data = to_json(msg)
           if data['id']
             before = active.to_a
             attempt.each do |a|
