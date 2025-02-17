@@ -28,6 +28,7 @@ AllCops:
   SuggestExtensions: false
   NewCops: enable
 plugins:
+  - rubocop-rspec
   - rubocop-performance
   - rubocop-rake
   - rubocop-minitest
@@ -63,4 +64,3 @@ Security/MarshalLoad:
   Enabled: false
 Layout/MultilineAssignmentLayout:
   Enabled: true
-require: []

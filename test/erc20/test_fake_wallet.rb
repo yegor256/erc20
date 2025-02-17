@@ -49,13 +49,19 @@ class TestFakeWallet < Minitest::Test
   end
 
   def test_checks_fake_balance
-    b = ERC20::FakeWallet.new.balance('0xEB2fE8872A6f1eDb70a2632Effffffffffffffff')
+    w = ERC20::FakeWallet.new
+    a = '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff'
+    b = w.balance(a)
     refute_nil(b)
+    assert_includes(w.history, { method: :balance, result: b, address: a })
   end
 
   def test_checks_fake_eth_balance
-    b = ERC20::FakeWallet.new.eth_balance('0xEB2fE8872A6f1eDb70a2632Effffffffffffffff')
+    a = '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff'
+    w = ERC20::FakeWallet.new
+    b = w.eth_balance(a)
     refute_nil(b)
+    assert_includes(w.history, { method: :eth_balance, result: b, address: a })
   end
 
   def test_returns_host
@@ -64,10 +70,13 @@ class TestFakeWallet < Minitest::Test
 
   def test_pays_fake_money
     priv = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
-    to = '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'
-    txn = ERC20::FakeWallet.new.pay(Eth::Key.new(priv:), to, 555)
+    address = '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'
+    w = ERC20::FakeWallet.new
+    amount = 555_000
+    txn = w.pay(priv, address, amount)
     assert_equal(66, txn.length)
     assert_match(/^0x[a-f0-9]{64}$/, txn)
+    assert_includes(w.history, { method: :pay, result: txn, priv:, address:, amount:, gas_limit: nil, gas_price: nil })
   end
 
   def test_pays_fake_eths

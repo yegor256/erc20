@@ -83,6 +83,19 @@ You can use [squid-proxy] [Docker] image to set up your own [HTTP proxy] server.
 Of course, this library works with [Polygon], [Optimism],
 and other forks of [Etherium].
 
+## How to use in tests
+
+You can use `ERC20::FakeWallet` class that behaves exactly like
+`ERC20::Wallet`, but doesn't make any network connections to the provider.
+Also, it remembers all requests that were sent to it:
+
+```ruby
+require 'erc20'
+w = ERC20::FakeWallet.new
+w.pay(priv, address, 42_000)
+assert w.history.include?({ method: :pay, params: [priv, address, 42_000] })
+```
+
 ## How to contribute
 
 Read
