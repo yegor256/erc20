@@ -67,17 +67,11 @@ class TestWallet < Minitest::Test
     assert_equal(0, b)
   end
 
-  def test_checks_gas_required_on_mainnet
-    b = mainnet.gas_required(STABLE, Eth::Key.new(priv: JEFF).address.to_s)
+  def test_checks_gas_estimate_on_mainnet
+    b = mainnet.gas_estimate(STABLE, Eth::Key.new(priv: JEFF).address.to_s, 44_000)
     refute_nil(b)
     assert_predicate(b, :positive?)
     assert_operator(b, :>, 1000)
-  end
-
-  def test_checks_same_address_gas_required_on_mainnet
-    b = mainnet.gas_required(STABLE, STABLE)
-    refute_nil(b)
-    assert_predicate(b, :positive?)
   end
 
   def test_fails_with_invalid_infura_key
@@ -107,28 +101,15 @@ class TestWallet < Minitest::Test
     assert_predicate(b, :zero?)
   end
 
-  def test_checks_gas_required_on_hardhat
+  def test_checks_gas_estimate_on_hardhat
+    sum = 100_000
     on_hardhat do |wallet|
-      b1 = wallet.gas_required(
+      b1 = wallet.gas_estimate(
         Eth::Key.new(priv: JEFF).address.to_s,
-        Eth::Key.new(priv: WALTER).address.to_s
+        Eth::Key.new(priv: WALTER).address.to_s,
+        sum
       )
-      assert_equal(21_597, b1)
-      b2 = wallet.gas_required(
-        Eth::Key.new(priv: JEFF).address.to_s,
-        Eth::Key.new(priv: JEFF).address.to_s
-      )
-      assert_equal(b1, b2)
-    end
-  end
-
-  def test_checks_eth_gas_required_on_hardhat
-    on_hardhat do |wallet|
-      b = wallet.eth_gas_required(
-        Eth::Key.new(priv: JEFF).address.to_s,
-        Eth::Key.new(priv: WALTER).address.to_s
-      )
-      assert_equal(21_001, b)
+      assert_operator(b1, :>, 21_000)
     end
   end
 

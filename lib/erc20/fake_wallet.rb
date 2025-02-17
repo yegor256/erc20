@@ -67,26 +67,24 @@ class ERC20::FakeWallet
     b
   end
 
-  # How much ETH gas is required in order to send this ERC20 transaction.
+  # How much gas units is required in order to send ERC20 transaction.
   #
   # @param [String] from The departing address, in hex
   # @param [String] to Arriving address, in hex
-  # @return [Integer] How many ETH required
-  def gas_required(from, to = from)
-    g = 66_000
-    @history << { method: :gas_required, from:, to:, result: g }
-    g
+  # @param [Integer] amount How many ERC20 tokens to send
+  # @return [Integer] How many gas units required
+  def gas_estimate(from, to, amount)
+    gas = 66_000
+    @history << { method: :gas_estimate, from:, to:, amount:, result: gas }
+    gas
   end
 
-  # How much ETH gas is required in order to send this ETH transaction.
-  #
-  # @param [String] from The departing address, in hex
-  # @param [String] to Arriving address, in hex (may be skipped)
-  # @return [Integer] How many ETH required
-  def eth_gas_required(from, to = from)
-    g = 55_000
-    @history << { method: :eth_gas_required, from:, to:, result: g }
-    g
+  # What is the price of gas unit in gwei?
+  # @return [Integer] Price of gas unit, in gwei (0.000000001 ETH)
+  def gas_price
+    gwei = 55_555
+    @history << { method: :gas_price, result: gwei }
+    gwei
   end
 
   # Send a single ERC20 payment from a private address to a public one.
@@ -107,9 +105,9 @@ class ERC20::FakeWallet
   # @param [String] address Public key, in hex
   # @param [Integer] amount The amount of ETHs to send
   # @return [String] Transaction hash
-  def eth_pay(priv, address, amount, gas_limit: nil, gas_price: nil)
+  def eth_pay(priv, address, amount, gas_price: nil)
     hex = '0x172de9cda30537eae68ab4a96163ebbb8f8a85293b8737dd2e5deb4714b14623'
-    @history << { method: :eth_pay, priv:, address:, amount:, gas_limit:, gas_price:, result: hex }
+    @history << { method: :eth_pay, priv:, address:, amount:, gas_price:, result: hex }
     hex
   end
 
