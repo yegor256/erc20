@@ -54,6 +54,16 @@ eth = w.eth_balance(address)
 hex = w.eth_pay(private_key, to_address, amount)
 ```
 
+To check the price of a gas unit and the expected cost of a payment:
+
+```ruby
+# How many gas units required to send this payment:
+units = w.gas_estimate(from, to, amount)
+
+# What is the price of a gas unit, in gwei:
+gwei = w.gas_price
+```
+
 To generate a new private key, use [eth](https://rubygems.org/gems/eth):
 
 ```ruby
@@ -93,7 +103,7 @@ Also, it remembers all requests that were sent to it:
 require 'erc20'
 w = ERC20::FakeWallet.new
 w.pay(priv, address, 42_000)
-assert w.history.include?({ method: :pay, params: [priv, address, 42_000] })
+assert w.history.include?({ method: :pay, priv:, address:, amount: 42_000 })
 ```
 
 ## How to contribute
