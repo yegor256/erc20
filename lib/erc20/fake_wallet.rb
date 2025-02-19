@@ -28,6 +28,22 @@ class ERC20::FakeWallet
     @ws_path = '/'
     @http_path = '/'
     @history = []
+    @balances = {}
+    @eth_balances = {}
+  end
+
+  # Set balance, to be returned by the +balance()+.
+  # @param [String] address Public key, in hex, starting from '0x'
+  # @param [Integer] tokens How many tokens to put there
+  def set_balance(address, tokens)
+    @balances[address] = tokens
+  end
+
+  # Set balance, to be returned by the +balance()+.
+  # @param [String] address Public key, in hex, starting from '0x'
+  # @param [Integer] wei How many wei to put there
+  def set_eth_balance(address, wei)
+    @eth_balances[address] = wei
   end
 
   # Get ERC20 balance of a public address.
@@ -35,7 +51,7 @@ class ERC20::FakeWallet
   # @param [String] address Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in tokens
   def balance(address)
-    b = 42_000_000
+    b = @balances[address] || 42_000_000
     @history << { method: :balance, address:, result: b }
     b
   end
@@ -45,7 +61,7 @@ class ERC20::FakeWallet
   # @param [String] address Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in tokens
   def eth_balance(address)
-    b = 77_000_000_000_000_000
+    b = @eth_balances[address] || 77_000_000_000_000_000
     @history << { method: :eth_balance, address:, result: b }
     b
   end

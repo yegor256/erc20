@@ -40,15 +40,33 @@ class TestFakeWallet < Minitest::Test
     a = '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff'
     b = w.balance(a)
     refute_nil(b)
+    assert_equal(42_000_000, b)
     assert_includes(w.history, { method: :balance, result: b, address: a })
   end
 
+  def test_checks_preset_fake_balance
+    w = ERC20::FakeWallet.new
+    a = '0xEB2fE8872A6f1eDb70a2632Effffffffeefbbfaa'
+    b = 55_555
+    w.set_balance(a, b)
+    assert_equal(b, w.balance(a))
+  end
+
   def test_checks_fake_eth_balance
-    a = '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff'
+    a = '0xEB2fE8872A6f1eDb70a2632Ebbffffff66fff77f'
     w = ERC20::FakeWallet.new
     b = w.eth_balance(a)
     refute_nil(b)
+    assert_equal(77_000_000_000_000_000, b)
     assert_includes(w.history, { method: :eth_balance, result: b, address: a })
+  end
+
+  def test_checks_preset_fake_eth_balance
+    a = '0xEB2fE8872A6f1eDb70a2632Eff88fff99fff33ff'
+    w = ERC20::FakeWallet.new
+    b = 33_333
+    w.set_eth_balance(a, b)
+    assert_equal(b, w.eth_balance(a))
   end
 
   def test_returns_host
