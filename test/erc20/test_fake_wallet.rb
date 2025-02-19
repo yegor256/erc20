@@ -81,6 +81,7 @@ class TestFakeWallet < Minitest::Test
     txn = w.pay(priv, address, amount)
     assert_equal(66, txn.length)
     assert_match(/^0x[a-f0-9]{64}$/, txn)
+    assert_equal(ERC20::FakeWallet::TXN_HASH, txn)
     assert_includes(w.history, { method: :pay, result: txn, priv:, address:, amount:, gas_limit: nil, gas_price: nil })
   end
 

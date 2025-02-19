@@ -12,6 +12,9 @@ require_relative 'wallet'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class ERC20::FakeWallet
+  # Transaction hash always returned:
+  TXN_HASH = '0x172de9cda30537eae68ab4a96163ebbb8f8a85293b8737dd2e5deb4714b14623'
+
   # Fakes:
   attr_reader :host, :port, :ssl, :chain, :contract, :ws_path, :http_path
 
@@ -93,7 +96,7 @@ class ERC20::FakeWallet
   # @param [Integer] _amount The amount of ERC20 tokens to send
   # @return [String] Transaction hash
   def pay(priv, address, amount, gas_limit: nil, gas_price: nil)
-    hex = '0x172de9cda30537eae68ab4a96163ebbb8f8a85293b8737dd2e5deb4714b14623'
+    hex = TXN_HASH
     @history << { method: :pay, priv:, address:, amount:, gas_limit:, gas_price:, result: hex }
     hex
   end
@@ -105,7 +108,7 @@ class ERC20::FakeWallet
   # @param [Integer] amount The amount of ETHs to send
   # @return [String] Transaction hash
   def eth_pay(priv, address, amount, gas_price: nil)
-    hex = '0x172de9cda30537eae68ab4a96163ebbb8f8a85293b8737dd2e5deb4714b14623'
+    hex = TXN_HASH
     @history << { method: :eth_pay, priv:, address:, amount:, gas_price:, result: hex }
     hex
   end
@@ -131,7 +134,7 @@ class ERC20::FakeWallet
             amount: 424_242,
             from: '0xd5ff1bfcde7a03da61ad229d962c74f1ea2f16a5',
             to: a,
-            txn: '0x172de9cda30537eae68ab4a96163ebbb8f8a85293b8737dd2e5deb4714b14623'
+            txn: TXN_HASH
           }
         end
       yield event
