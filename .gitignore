@@ -7,3 +7,4 @@ rdoc/
 doc/
 .yardoc/
 node_modules/
+vendor/
