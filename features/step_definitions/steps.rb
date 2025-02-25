@@ -3,7 +3,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 Yegor Bugayenko
 # SPDX-License-Identifier: MIT
 
-require 'nokogiri'
 require 'tmpdir'
 require 'slop'
 require 'English'
