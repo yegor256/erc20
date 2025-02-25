@@ -96,7 +96,9 @@ and other forks of [Etherium].
 ## How to use in command line
 
 This gem also provides a command line tool for sending ETH and ERC20 payments
-and checking balances. First, you install it:
+and checking balances.
+
+First, you install it, via [gem]:
 
 ```bash
 gem install erc20
@@ -139,6 +141,7 @@ bundle exec rake
 
 If it's clean and you don't see any error messages, submit your pull request.
 
+[gem]: https://github.com/rubygems/rubygems
 [Etherium]: https://en.wikipedia.org/wiki/Ethereum
 [ERC20]: https://ethereum.org/en/developers/docs/standards/tokens/erc-20/
 [JSON-RPC]: https://ethereum.org/en/developers/docs/apis/json-rpc/
