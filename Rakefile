@@ -17,7 +17,7 @@ def version
   Gem::Specification.load(Dir['*.gemspec'].first).version
 end
 
-task default: %i[clean test rubocop yard]
+task default: %i[clean test features rubocop yard]
 
 require 'rake/testtask'
 desc 'Run all unit tests'
@@ -40,6 +40,14 @@ desc 'Run RuboCop on all directories'
 RuboCop::RakeTask.new(:rubocop) do |task|
   task.fail_on_error = true
   task.requires << 'rubocop-rspec'
+end
+
+require 'cucumber/rake/task'
+Cucumber::Rake::Task.new(:features) do
+  Rake::Cleaner.cleanup_files(['coverage'])
+end
+Cucumber::Rake::Task.new(:'features:html') do |t|
+  t.profile = 'html_report'
 end
 
 desc 'Run benchmark script'
