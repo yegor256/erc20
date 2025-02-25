@@ -18,9 +18,9 @@ Feature: Gem Package
     """
     When I run bash with:
     """
-    cd sibit
-    gem build sibit.gemspec
-    gem specification --ruby sibit-*.gem > ../spec.rb
+    cd erc20
+    gem build erc20.gemspec
+    gem specification --ruby erc20-*.gem > ../spec.rb
     cd ..
     ruby execs.rb
     """
