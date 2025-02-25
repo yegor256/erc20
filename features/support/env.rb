@@ -4,5 +4,5 @@
 # SPDX-License-Identifier: MIT
 
 require 'simplecov'
-require 'aruba/cucumber'
-require_relative '../../lib/sibit'
+require 'cucumber'
+require_relative '../../lib/erc20'
