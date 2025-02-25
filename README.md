@@ -93,6 +93,23 @@ You can use [squid-proxy] [Docker] image to set up your own [HTTP proxy] server.
 Of course, this library works with [Polygon], [Optimism],
 and other forks of [Etherium].
 
+## How to use in command line
+
+This gem also provides a command line tool for sending ETH and ERC20 payments
+and checking balances. First, you install it:
+
+```bash
+gem install erc20
+```
+
+Then, run it:
+
+```bash
+erc20 --help
+```
+
+It should be obvious how to use it. If not, please, submit an issue.
+
 ## How to use in tests
 
 You can use `ERC20::FakeWallet` class that behaves exactly like

@@ -1,0 +1,148 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# SPDX-FileCopyrightText: Copyright (c) 2025 Yegor Bugayenko
+# SPDX-License-Identifier: MIT
+
+$stdout.sync = true
+
+require 'backtrace'
+require 'loog'
+require 'slop'
+require_relative '../lib/erc20'
+require_relative '../lib/erc20/erc20'
+require_relative '../lib/erc20/wallet'
+
+begin
+  begin
+    opts = Slop.parse(ARGV, strict: true, help: true) do |o|
+      o.banner = "Usage (#{ERC20::VERSION}): erc20 [options] command [args]
+Commands are:
+    key:         Generate a new Etherium private key (64 symbols)
+    address:     Turn private key into a public address (44 symbols)
+    price:       Get current price of one gas unit, in gwei
+    pay:         Send ERC20 payment
+    eth_pay:     Send ETH payment
+    balance:     Get ERC20 balance
+    eth_balance: Get ETH balance
+Options are:"
+      o.string(
+        '--contract',
+        'Public address of ERC20 contract',
+        default: ERC20::Wallet::USDT
+      )
+      o.integer(
+        '--chain',
+        'Etherium chain ID',
+        default: 1
+      )
+      o.string(
+        '--host',
+        'Host name of the provider',
+        default: 'eth.llamarpc.com'
+      )
+      o.string(
+        '--port',
+        'TCP port of the provider',
+        default: 443
+      )
+      o.string(
+        '--http_path',
+        'URL path for the HTTP RPC entry point of the provider',
+        default: '/'
+      )
+      o.string(
+        '--ws_path',
+        'URL path for the Websockets entry point of the provider',
+        default: '/'
+      )
+      o.string(
+        '--proxy',
+        'HTTP/S proxy for all requests, e.g. "localhost:3128"'
+      )
+      o.integer(
+        '--attempts',
+        'How many times should we try before failing',
+        default: 1
+      )
+      o.bool(
+        '--dry',
+        'Don\'t send a real payment, run in a read-only mode'
+      )
+      o.bool('--help', 'Read this: https://github.com/yegor256/erc20') do
+        puts o
+        exit
+      end
+      o.bool('--verbose', 'Print all possible debug messages')
+    end
+  rescue Slop::Error => e
+    raise e.message
+  end
+  raise 'Try --help' if opts.arguments.empty?
+  log = opts[:verbose] ? Loog::VERBOSE : Loog::REGULAR
+  wallet = ERC20::Wallet.new(
+    contract: opts[:contract],
+    host: opts[:host], port: opts[:port],
+    http_path: opts[:http_path], ws_path: opts[:ws_path],
+    log:
+  )
+  case opts.arguments[0]
+  when 'key'
+    puts Eth::Key.new.private_hex
+  when 'address'
+    puts Eth::Key.new(priv: opts.arguments[1]).address.to_s
+  when 'price'
+    puts wallet.gas_price
+  when 'balance'
+    address = opts.arguments[1]
+    raise 'Address is required' if address.nil?
+    log.info("Checking ERC20 balance of #{address}")
+    puts wallet.balance(address)
+  when 'eth_balance'
+    address = opts.arguments[1]
+    raise 'Address is required' if address.nil?
+    log.info("Checking ETH balance of #{address}")
+    puts wallet.eth_balance(address)
+  when 'pay'
+    pkey = opts.arguments[1]
+    raise 'Private key is required' if pkey.nil?
+    priv = Eth::Key.new(priv: pkey)
+    log.info("Sending ERC20 tokens from #{priv.address.to_s}")
+    address = opts.arguments[2]
+    raise 'Address is required' if address.nil?
+    log.info("Sending ERC20 tokens to #{address}")
+    amount = opts.arguments[3]
+    raise 'Amount argument is required' if amount.nil?
+    raise 'Amount is not valid' unless /^[0-9]+(usdt)?$/.match?(amount)
+    amount = amount.to_i if /^[0-9]+$/.match?(amount)
+    amount = (amount.gsub(/usdt^/, '').to_f * 1_000_000).to_i if /^[0-9]usdt+$/.match?(amount)
+    log.info("Sending #{amount} ERC20 tokens")
+    puts wallet.pay(priv.private_hex, address, amount)
+  when 'eth_pay'
+    pkey = opts.arguments[1]
+    raise 'Private key is required' if pkey.nil?
+    priv = Eth::Key.new(priv: pkey)
+    log.info("Sending ETH from #{priv.address.to_s}")
+    address = opts.arguments[2]
+    raise 'Address is required' if address.nil?
+    log.info("Sending ETH to #{address}")
+    amount = opts.arguments[3]
+    raise 'Amount argument is required' if amount.nil?
+    raise 'Amount is not valid' unless /^[0-9]+(wei|gwei|usdt)?$/.match?(amount)
+    amount = amount.to_i if /^[0-9]+$/.match?(amount)
+    amount = amount.gsub(/wei^/, '').to_i if /^[0-9]wei+$/.match?(amount)
+    amount = (amount.gsub(/gwei^/, '').to_f * 1_000_000_000).to_i if /^[0-9]gwei+$/.match?(amount)
+    amount = (amount.gsub(/eth^/, '').to_f * 1_000_000_000_000_000_000).to_i if /^[0-9]eth+$/.match?(amount)
+    log.info("Sending #{amount} wei")
+    puts wallet.eth_pay(priv.private_hex, address, amount)
+  else
+    raise "Command #{opts.arguments[0]} is not supported"
+  end
+rescue StandardError => e
+  if opts[:verbose]
+    puts Backtrace.new(e)
+  else
+    puts "ERROR: #{e.message}"
+  end
+  exit(255)
+end
