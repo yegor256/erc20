@@ -97,12 +97,16 @@ Options are:"
     address = opts.arguments[1]
     raise 'Address is required' if address.nil?
     log.debug("Checking ERC20 balance of #{address}")
-    puts wallet.balance(address)
+    tokens = wallet.balance(address)
+    log.debug("The balance is #{tokens} ERC20 tokens (#{tokens.to_f / 1_000_000} USDT)")
+    puts tokens
   when 'eth_balance'
     address = opts.arguments[1]
     raise 'Address is required' if address.nil?
     log.debug("Checking ETH balance of #{address}")
-    puts wallet.eth_balance(address)
+    wei = wallet.eth_balance(address)
+    log.debug("The balance of #{address} is #{wei} wei (#{format('%0.4f', wei.to_f / 1_000_000_000_000_000_000)} ETH)")
+    puts wei
   when 'pay'
     pkey = opts.arguments[1]
     raise 'Private key is required' if pkey.nil?
