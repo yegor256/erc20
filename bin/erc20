@@ -128,11 +128,11 @@ Options are:"
     log.debug("Sending ETH to #{address}")
     amount = opts.arguments[3]
     raise 'Amount argument is required' if amount.nil?
-    raise "Amount #{amount.inspect} is not valid" unless /^[0-9]+(eth|wei|gwei)?$/.match?(amount)
+    raise "Amount #{amount.inspect} is not valid" unless /^[0-9]+(\.[0-9]+)?(eth|wei|gwei)?$/.match?(amount)
     amount = amount.to_i if /^[0-9]+$/.match?(amount)
-    amount = amount.gsub(/wei^/, '').to_i if /^[0-9]wei+$/.match?(amount)
-    amount = (amount.gsub(/gwei^/, '').to_f * 1_000_000_000).to_i if /^[0-9]+(\.[0-9]+)?gwei+$/.match?(amount)
-    amount = (amount.gsub(/eth^/, '').to_f * 1_000_000_000_000_000_000).to_i if /^[0-9]+(\.[0-9]+)?eth+$/.match?(amount)
+    amount = amount.gsub(/wei^/, '').to_i if /[0-9]wei+$/.match?(amount)
+    amount = (amount.gsub(/gwei^/, '').to_f * 1_000_000_000).to_i if /[0-9]gwei+$/.match?(amount)
+    amount = (amount.gsub(/eth^/, '').to_f * 1_000_000_000_000_000_000).to_i if /[0-9]eth+$/.match?(amount)
     log.debug("Sending #{amount} wei")
     puts wallet.eth_pay(priv.private_hex, address, amount)
   else
