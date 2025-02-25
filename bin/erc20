@@ -137,7 +137,7 @@ Options are:"
     amount = amount.gsub(/wei^/, '').to_i if /[0-9]wei+$/.match?(amount)
     amount = (amount.gsub(/gwei^/, '').to_f * 1_000_000_000).to_i if /[0-9]gwei+$/.match?(amount)
     amount = (amount.gsub(/eth^/, '').to_f * 1_000_000_000_000_000_000).to_i if /[0-9]eth+$/.match?(amount)
-    log.debug("Sending #{amount} wei")
+    log.debug("Sending #{amount} wei...")
     puts wallet.eth_pay(priv.private_hex, address, amount)
   else
     raise "Command #{opts.arguments[0]} is not supported"
