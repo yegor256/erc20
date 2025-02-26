@@ -13,8 +13,8 @@ require 'random-port'
 require 'shellwords'
 require 'threads'
 require 'typhoeus'
-require_relative '../../lib/erc20/fake_wallet'
 require_relative '../test__helper'
+require_relative '../../lib/erc20/fake_wallet'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
