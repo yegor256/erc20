@@ -1,4 +1,4 @@
-# Etherium ERC20 Manipulations in Ruby
+# Ethereum ERC20 Manipulations in Ruby
 
 [![DevOps By Rultor.com](http://www.rultor.com/b/yegor256/erc20)](http://www.rultor.com/p/yegor256/erc20)
 [![We recommend RubyMine](https://www.elegantobjects.org/rubymine.svg)](https://www.jetbrains.com/ruby/)
@@ -12,9 +12,9 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yegor256/erc20/blob/master/LICENSE.txt)
 
 This small Ruby [gem](https://rubygems.org/gems/erc20)
-makes manipulations with [Etherium] [ERC20] tokens
+makes manipulations with [Ethereum] [ERC20] tokens
 as simple as they can be, if you have a provider of
-[JSON-RPC] and [WebSockets] Etherium APIs, for example
+[JSON-RPC] and [WebSockets] Ethereum APIs, for example
 [Infura], [GetBlock], or [Alchemy]:
 
 ```ruby
@@ -91,7 +91,7 @@ w = ERC20::Wallet.new(
 You can use [squid-proxy] [Docker] image to set up your own [HTTP proxy] server.
 
 Of course, this library works with [Polygon], [Optimism],
-and other forks of [Etherium].
+and other EVM compatible blockchains.
 
 ## How to use in command line
 
@@ -142,7 +142,7 @@ bundle exec rake
 If it's clean and you don't see any error messages, submit your pull request.
 
 [gem]: https://github.com/rubygems/rubygems
-[Etherium]: https://en.wikipedia.org/wiki/Ethereum
+[Ethereum]: https://en.wikipedia.org/wiki/Ethereum
 [ERC20]: https://ethereum.org/en/developers/docs/standards/tokens/erc-20/
 [JSON-RPC]: https://ethereum.org/en/developers/docs/apis/json-rpc/
 [Websockets]: https://ethereum.org/en/developers/tutorials/using-websockets/
