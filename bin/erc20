@@ -18,7 +18,7 @@ begin
     opts = Slop.parse(ARGV, strict: true, help: true) do |o|
       o.banner = "Usage (#{ERC20::VERSION}): erc20 [options] command [args]
 Commands are:
-    key:         Generate a new Etherium private key (64 symbols)
+    key:         Generate a new Ethereum private key (64 symbols)
     address:     Turn private key into a public address (44 symbols)
     price:       Get current price of one gas unit, in gwei
     pay:         Send ERC20 payment
@@ -33,7 +33,7 @@ Options are:"
       )
       o.integer(
         '--chain',
-        'Etherium chain ID',
+        'Ethereum chain ID',
         default: 1
       )
       o.string(

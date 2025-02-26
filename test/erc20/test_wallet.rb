@@ -21,7 +21,7 @@ require_relative '../../lib/erc20/wallet'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWallet < Minitest::Test
-  # At this address, in Etherium mainnet, there are $8 USDT and 0.0042 ETH. I won't
+  # At this address, in Ethereum mainnet, there are $8 USDT and 0.0042 ETH. I won't
   # move them anyway, that's why tests can use this address forever.
   STABLE = '0x7232148927F8a580053792f44D4d59d40Fd00ABD'
 
@@ -303,7 +303,7 @@ class TestWallet < Minitest::Test
   def test_pays_on_mainnet
     skip('This is live, must be run manually')
     w = mainnet
-    print 'Enter Etherium ERC20 private key (64 chars): '
+    print 'Enter Ethereum ERC20 private key (64 chars): '
     priv = gets.chomp
     to = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
     txn = w.pay(priv, to, 1_990_000)

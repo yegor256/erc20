@@ -3,9 +3,9 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 Yegor Bugayenko
 # SPDX-License-Identifier: MIT
 
-# This module makes manipulations with Etherium ERC20 tokens
+# This module makes manipulations with Ethereum ERC20 tokens
 # as simple as they can be, if you have a provider of
-# JSON-RPC and WebSockets Etherium APIs, for example
+# JSON-RPC and WebSockets Ethereum APIs, for example
 # Infura, GetBlock, or Alchemy.
 #
 # Start like this:
