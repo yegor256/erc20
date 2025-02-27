@@ -12,7 +12,7 @@ require 'loog'
 require 'uri'
 require_relative 'erc20'
 
-# A wallet with ERC20 tokens on Etherium.
+# A wallet with ERC20 tokens on Ethereum.
 #
 # Objects of this class are thread-safe.
 #
@@ -64,7 +64,7 @@ class ERC20::Wallet
   attr_reader :host, :port, :ssl, :chain, :contract, :ws_path, :http_path
 
   # Constructor.
-  # @param [String] contract Hex of the contract in Etherium
+  # @param [String] contract Hex of the contract in Ethereum
   # @param [Integer] chain The ID of the chain (1 for mainnet)
   # @param [String] host The host to connect to
   # @param [Integer] port TCP port to use
@@ -107,7 +107,7 @@ class ERC20::Wallet
 
   # Get ERC20 balance of a public address (it's not the same as ETH balance!).
   #
-  # An address in Etherium may have many balances. One of them is the main
+  # An address in Ethereum may have many balances. One of them is the main
   # balance in ETH crypto. Another balance is the one kept by ERC20 contract
   # in its own ledge in root storage. This balance is checked by this method.
   #
@@ -127,7 +127,7 @@ class ERC20::Wallet
 
   # Get ETH balance of a public address.
   #
-  # An address in Etherium may have many balances. One of them is the main
+  # An address in Ethereum may have many balances. One of them is the main
   # balance in ETH crypto. This balance is checked by this method.
   #
   # @param [String] hex Public key, in hex, starting from '0x'

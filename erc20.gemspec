@@ -12,12 +12,12 @@ Gem::Specification.new do |s|
   s.name = 'erc20'
   s.version = ERC20::VERSION
   s.license = 'MIT'
-  s.summary = 'Sending and receiving ERC20 tokens in Etherium network'
+  s.summary = 'Sending and receiving ERC20 tokens in Ethereum network'
   s.description =
     'A simple library for making ERC20 manipulations as easy as they ' \
     'can be for cryptocurrency newbies: checking balance, sending payments, ' \
     'and monitoring addresses for incoming payments. The library expects ' \
-    'Etherium node to provide JSON RPC and Websockets API.'
+    'Ethereum node to provide JSON RPC and Websockets API.'
   s.authors = ['Yegor Bugayenko']
   s.email = 'yegor256@gmail.com'
   s.homepage = 'http://github.com/yegor256/erc20.rb'
