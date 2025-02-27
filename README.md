@@ -13,8 +13,8 @@
 
 This small Ruby [gem](https://rubygems.org/gems/erc20)
 makes manipulations with [Ethereum] [ERC20] tokens
-as simple as they can be, if you have a provider of
-[JSON-RPC] and [WebSockets] Ethereum APIs, for example
+as simple as possible, when you have a provider of
+[JSON-RPC] and [WebSockets] Ethereum APIs, such as
 [Infura], [GetBlock], or [Alchemy]:
 
 ```ruby
@@ -44,10 +44,10 @@ w.accept(addresses) do |event|
 end
 ```
 
-It's also possible to check ETH balance and send ETH transaction:
+You can also check ETH balance and send ETH transactions:
 
 ```ruby
-# Check how many ETHs are there on the given address:
+# Check how many ETHs are on the given address:
 eth = w.eth_balance(address)
 
 # Send a few ETHs to someone and get transaction hash:
@@ -110,13 +110,13 @@ Then, run it:
 erc20 --help
 ```
 
-It should be obvious how to use it. If not, please, submit an issue.
+Usage should be straightforward. If you have questions, please submit an issue.
 
 ## How to use in tests
 
-You can use `ERC20::FakeWallet` class that behaves exactly like
+You can use the `ERC20::FakeWallet` class that behaves exactly like
 `ERC20::Wallet`, but doesn't make any network connections to the provider.
-Also, it remembers all requests that were sent to it:
+Additionally, it records all requests sent to it:
 
 ```ruby
 require 'erc20'
@@ -129,7 +129,7 @@ assert w.history.include?({ method: :pay, priv:, address:, amount: 42_000 })
 
 Read
 [these guidelines](https://www.yegor256.com/2014/04/15/github-guidelines.html).
-Make sure you build is green before you contribute
+Make sure your build is green before you contribute
 your pull request. You will need to have
 [Ruby](https://www.ruby-lang.org/en/) 3.2+ and
 [Bundler](https://bundler.io/) installed. Then:
