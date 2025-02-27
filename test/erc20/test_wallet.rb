@@ -76,7 +76,8 @@ class TestWallet < Minitest::Test
   def test_checks_balance_on_polygon
     w = ERC20::Wallet.new(
       contract: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-      host: 'polygon-mainnet.infura.io', http_path: "/v3/#{env('INFURA_KEY')}",
+      host: 'polygon-mainnet.infura.io',
+      http_path: "/v3/#{env('INFURA_KEY')}",
       log: loog
     )
     b = w.balance(STABLE)
@@ -290,13 +291,12 @@ class TestWallet < Minitest::Test
 
   def test_checks_balance_via_proxy_on_mainnet
     via_proxy do |proxy|
-      on_hardhat do
-        w = ERC20::Wallet.new(
-          host: 'mainnet.infura.io', http_path: "/v3/#{env('INFURA_KEY')}",
-          proxy:, log: loog
-        )
-        assert_equal(8_000_000, w.balance(STABLE))
-      end
+      w = ERC20::Wallet.new(
+        host: 'mainnet.infura.io',
+        http_path: "/v3/#{env('INFURA_KEY')}",
+        proxy:, log: loog
+      )
+      assert_equal(8_000_000, w.balance(STABLE))
     end
   end
 
@@ -315,6 +315,7 @@ class TestWallet < Minitest::Test
   def env(var)
     key = ENV.fetch(var, nil)
     skip("The #{var} environment variable is not set") if key.nil?
+    skip("The #{var} environment variable is empty") if key.empty?
     key
   end
 
