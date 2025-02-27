@@ -164,6 +164,14 @@ class ERC20::Wallet
   end
 
   # What is the price of gas unit in gwei?
+  #
+  # In Ethereum, gas is a unit that measures the computational work required to
+  # execute operations on the network. Every transaction and smart contract
+  # interaction consumes gas. Gas price is the amount of ETH you're willing to pay
+  # for each unit of gas, denominated in gwei (1 gwei = 0.000000001 ETH). Higher
+  # gas prices incentivize miners to include your transaction sooner, while lower
+  # prices may result in longer confirmation times.
+  #
   # @return [Integer] Price of gas unit, in gwei (0.000000001 ETH)
   def gas_price
     gwei = jsonrpc.eth_getBlockByNumber('latest', false)['baseFeePerGas'].to_i(16)
@@ -172,6 +180,14 @@ class ERC20::Wallet
   end
 
   # Send a single ERC20 payment from a private address to a public one.
+  #
+  # ERC20 payments differ fundamentally from native ETH transfers. While ETH transfers
+  # simply move the cryptocurrency directly between addresses, ERC20 token transfers
+  # are actually interactions with a smart contract. When you transfer ERC20 tokens,
+  # you're not sending anything directly to another user - instead, you're calling
+  # the token contract's transfer function, which updates its internal ledger to
+  # decrease your balance and increase the recipient's balance. This requires more
+  # gas than ETH transfers since it involves executing contract code.
   #
   # @param [String] priv Private key, in hex
   # @param [String] address Public key, in hex
