@@ -108,8 +108,8 @@ class ERC20::Wallet
   # Get ERC20 balance of a public address (it's not the same as ETH balance!).
   #
   # An address in Ethereum may have many balances. One of them is the main
-  # balance in ETH crypto. Another balance is the one kept by ERC20 contract
-  # in its own ledge in root storage. This balance is checked by this method.
+  # balance in ETH crypto. Another balance is the one kept by the ERC20 contract
+  # in its own ledger in root storage. This balance is checked by this method.
   #
   # @param [String] address Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in tokens
@@ -142,12 +142,12 @@ class ERC20::Wallet
     b
   end
 
-  # How much gas units is required in order to send ERC20 transaction.
+  # How many gas units are required to send an ERC20 transaction.
   #
-  # @param [String] from The departing address, in hex
-  # @param [String] to Arriving address, in hex
+  # @param [String] from The sending address, in hex
+  # @param [String] to The receiving address, in hex
   # @param [Integer] amount How many ERC20 tokens to send
-  # @return [Integer] How many gas units required
+  # @return [Integer] Number of gas units required
   def gas_estimate(from, to, amount)
     raise 'Address can\'t be nil' unless from
     raise 'Address must be a String' unless from.is_a?(String)
@@ -241,8 +241,7 @@ class ERC20::Wallet
   #
   # @param [String] priv Private key, in hex
   # @param [String] address Public key, in hex
-  # @param [Integer] amount The amount of ERC20 tokens to send
-  # @param [Integer] limit How much gas you're ready to spend
+  # @param [Integer] amount The amount of ETH to send
   # @param [Integer] price How much gas you pay per computation unit
   # @return [String] Transaction hash
   def eth_pay(priv, address, amount, price: gas_price)
@@ -288,7 +287,7 @@ class ERC20::Wallet
   # +Thread.kill+.
   #
   # The array with the list of addresses (+addresses+) may change its
-  # content on-fly. The +accept()+ method will +eht_subscribe+ to the addresses
+  # content on-the-fly. The +accept()+ method will +eth_subscribe+ to the addresses
   # that are added and will +eth_unsubscribe+ from those that are removed.
   # Once we actually start listening, the +active+ array will be updated
   # with the list of addresses.
@@ -307,8 +306,8 @@ class ERC20::Wallet
     raise 'Addresses must respond to .to_a()' unless addresses.respond_to?(:to_a)
     raise 'Active can\'t be nil' unless active
     raise 'Active must respond to .append()' unless active.respond_to?(:append)
-    raise 'Amount must be an Integer' unless delay.is_a?(Integer)
-    raise 'Amount must be a positive Integer' unless delay.positive?
+    raise 'Delay must be an Integer' unless delay.is_a?(Integer)
+    raise 'Delay must be a positive Integer' unless delay.positive?
     raise 'Subscription ID must be an Integer' unless subscription_id.is_a?(Integer)
     raise 'Subscription ID must be a positive Integer' unless subscription_id.positive?
     EventMachine.run do
@@ -348,7 +347,7 @@ class ERC20::Wallet
                 txn: event['transactionHash'].downcase
               }
               log.debug(
-                "Payment of #{event[:amount]} tokens arrived" \
+                "Payment of #{event[:amount]} tokens arrived " \
                 "from #{event[:from]} to #{event[:to]} in #{event[:txn]}"
               )
             end
