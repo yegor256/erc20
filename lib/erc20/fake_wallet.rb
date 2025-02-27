@@ -91,9 +91,11 @@ class ERC20::FakeWallet
 
   # Send a single ERC20 payment from a private address to a public one.
   #
-  # @param [String] _priv Private key, in hex
-  # @param [String] _address Public key, in hex
-  # @param [Integer] _amount The amount of ERC20 tokens to send
+  # @param [String] priv Private key, in hex
+  # @param [String] address Public key, in hex
+  # @param [Integer] amount The amount of ERC20 tokens to send
+  # @param [Integer] gas_limit Optional gas limit
+  # @param [Integer] gas_price Optional gas price in gwei
   # @return [String] Transaction hash
   def pay(priv, address, amount, gas_limit: nil, gas_price: nil)
     hex = TXN_HASH
@@ -106,6 +108,7 @@ class ERC20::FakeWallet
   # @param [String] priv Private key, in hex
   # @param [String] address Public key, in hex
   # @param [Integer] amount The amount of ETHs to send
+  # @param [Integer] gas_price Optional gas price in gwei
   # @return [String] Transaction hash
   def eth_pay(priv, address, amount, gas_price: nil)
     hex = TXN_HASH
