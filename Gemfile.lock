@@ -163,7 +163,7 @@ GEM
     parser (3.3.7.1)
       ast (~> 2.4.1)
       racc
-    pkg-config (1.5.9)
+    pkg-config (1.6.0)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
