@@ -137,7 +137,7 @@ GEM
     loog (0.6.0)
     mini_mime (1.1.5)
     mini_portile2 (2.8.8)
-    minitest (5.25.4)
+    minitest (5.25.5)
     minitest-reporters (1.7.1)
       ansi
       builder
@@ -313,7 +313,7 @@ DEPENDENCIES
   erc20!
   faraday (> 0)
   loog (> 0)
-  minitest (= 5.25.4)
+  minitest (= 5.25.5)
   minitest-reporters (= 1.7.1)
   minitest-retry (= 0.2.5)
   qbash (> 0)

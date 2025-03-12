@@ -11,7 +11,7 @@ gem 'cucumber', '9.2.1', require: false
 gem 'donce', '>0', require: false
 gem 'faraday', '>0', require: false
 gem 'loog', '>0', require: false
-gem 'minitest', '5.25.4', require: false
+gem 'minitest', '5.25.5', require: false
 gem 'minitest-reporters', '1.7.1', require: false
 gem 'minitest-retry', '0.2.5', require: false
 gem 'qbash', '>0', require: false
