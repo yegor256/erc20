@@ -174,7 +174,9 @@ class ERC20::Wallet
   #
   # @return [Integer] Price of gas unit, in gwei (0.000000001 ETH)
   def gas_price
-    gwei = jsonrpc.eth_getBlockByNumber('latest', false)['baseFeePerGas'].to_i(16)
+    block = jsonrpc.eth_getBlockByNumber('latest', false)
+    raise "Can't get gas price, try again later" if block.nil?
+    gwei = block['baseFeePerGas'].to_i(16)
     @log.debug("The cost of one gas unit is #{gwei} gwei")
     gwei
   end
