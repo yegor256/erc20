@@ -20,7 +20,7 @@ Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
 # To make tests retry on failure:
 if ENV['RAKE']
   require 'minitest/retry'
-  Minitest::Retry.use!(methods_to_skip: [])
+  Minitest::Retry.use!
 end
 
 # Primitive array.
