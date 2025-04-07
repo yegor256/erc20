@@ -1,13 +1,13 @@
 # Ethereum ERC20 Manipulations in Ruby
 
-[![DevOps By Rultor.com](http://www.rultor.com/b/yegor256/erc20)](http://www.rultor.com/p/yegor256/erc20)
+[![DevOps By Rultor.com](https://www.rultor.com/b/yegor256/erc20)](https://www.rultor.com/p/yegor256/erc20)
 [![We recommend RubyMine](https://www.elegantobjects.org/rubymine.svg)](https://www.jetbrains.com/ruby/)
 
 [![rake](https://github.com/yegor256/erc20/actions/workflows/rake.yml/badge.svg)](https://github.com/yegor256/erc20/actions/workflows/rake.yml)
-[![PDD status](http://www.0pdd.com/svg?name=yegor256/erc20)](http://www.0pdd.com/p?name=yegor256/erc20)
-[![Gem Version](https://badge.fury.io/rb/erc20.svg)](http://badge.fury.io/rb/erc20)
+[![PDD status](https://www.0pdd.com/svg?name=yegor256/erc20)](https://www.0pdd.com/p?name=yegor256/erc20)
+[![Gem Version](https://badge.fury.io/rb/erc20.svg)](https://badge.fury.io/rb/erc20)
 [![Test Coverage](https://img.shields.io/codecov/c/github/yegor256/erc20.svg)](https://codecov.io/github/yegor256/erc20?branch=master)
-[![Yard Docs](http://img.shields.io/badge/yard-docs-blue.svg)](http://rubydoc.info/github/yegor256/erc20/master/frames)
+[![Yard Docs](https://img.shields.io/badge/yard-docs-blue.svg)](https://rubydoc.info/github/yegor256/erc20/master/frames)
 [![Hits-of-Code](https://hitsofcode.com/github/yegor256/erc20)](https://hitsofcode.com/view/github/yegor256/erc20)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yegor256/erc20/blob/master/LICENSE.txt)
 
