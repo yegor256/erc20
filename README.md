@@ -15,7 +15,22 @@ This small Ruby [gem](https://rubygems.org/gems/erc20)
 makes manipulations with [Ethereum] [ERC20] tokens
 as simple as possible, when you have a provider of
 [JSON-RPC] and [WebSockets] Ethereum APIs, such as
-[Infura], [GetBlock], or [Alchemy]:
+[Infura], [GetBlock], or [Alchemy].
+
+Install it like this:
+
+```bash
+gem install erc20
+```
+
+Or simply add this to your Gemfile:
+
+```ruby
+gem 'erc20'
+```
+
+Then, make an instance of the main class and use to read
+balances, send and receive payments:
 
 ```ruby
 # Create a wallet:
