@@ -6,14 +6,27 @@
 $stdout.sync = true
 
 require 'simplecov'
-SimpleCov.external_at_exit = true
-SimpleCov.start
-
 require 'simplecov-cobertura'
-SimpleCov.formatter = SimpleCov::Formatter::CoberturaFormatter
+unless SimpleCov.running
+  SimpleCov.command_name('test')
+  SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new(
+    [
+      SimpleCov::Formatter::HTMLFormatter,
+      SimpleCov::Formatter::CoberturaFormatter
+    ]
+  )
+  SimpleCov.minimum_coverage 90
+  SimpleCov.minimum_coverage_by_file 90
+  SimpleCov.start do
+    add_filter 'test/'
+    add_filter 'vendor/'
+    add_filter 'target/'
+    track_files 'lib/**/*.rb'
+    track_files '*.rb'
+  end
+end
 
 require 'minitest/autorun'
-
 require 'minitest/reporters'
 Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
 
@@ -42,7 +55,7 @@ end
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
-class Minitest::Test
+class ERC20::Test < Minitest::Test
   def loog
     ENV['RAKE'] ? Loog::ERRORS : Loog::VERBOSE
   end

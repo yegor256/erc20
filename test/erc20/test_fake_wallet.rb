@@ -8,7 +8,6 @@ require 'donce'
 require 'eth'
 require 'faraday'
 require 'loog'
-require 'minitest/autorun'
 require 'random-port'
 require 'shellwords'
 require 'threads'
@@ -20,7 +19,7 @@ require_relative '../../lib/erc20/fake_wallet'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
-class TestFakeWallet < Minitest::Test
+class TestFakeWallet < ERC20::Test
   def test_checks_gas_estimate
     b = ERC20::FakeWallet.new.gas_estimate(
       '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff',

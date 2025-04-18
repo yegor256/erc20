@@ -294,9 +294,14 @@ class ERC20::Wallet
   # Once we actually start listening, the +active+ array will be updated
   # with the list of addresses.
   #
-  # The +addresses+ must have +to_a()+ implemented.
-  # The +active+ must have +append()+ implemented.
-  # Only these methods will be called.
+  # The +addresses+ must have +to_a()+ implemented. This method will be
+  # called every +delay+ seconds. It is expected that it returns the list
+  # of Ethereum public addresses that must be monitored.
+  #
+  # The +active+ must have +append()+ and +to_a()+ implemented. This array
+  # maintains the list of addresses that were mentioned in incoming transactions.
+  # This array is used mostly for testing. It is suggested to always provide
+  # an empty array.
   #
   # @param [Array<String>] addresses Addresses to monitor
   # @param [Array] active List of addresses that we are actually listening to

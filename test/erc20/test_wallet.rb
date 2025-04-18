@@ -8,7 +8,6 @@ require 'donce'
 require 'eth'
 require 'faraday'
 require 'loog'
-require 'minitest/autorun'
 require 'random-port'
 require 'shellwords'
 require 'threads'
@@ -20,7 +19,7 @@ require_relative '../../lib/erc20/wallet'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
-class TestWallet < Minitest::Test
+class TestWallet < ERC20::Test
   # At this address, in Ethereum mainnet, there are $8 USDT and 0.0042 ETH. I won't
   # move them anyway, that's why tests can use this address forever.
   STABLE = '0x7232148927F8a580053792f44D4d59d40Fd00ABD'
@@ -60,6 +59,7 @@ class TestWallet < Minitest::Test
   def test_fails_with_invalid_infura_key
     skip('Apparently, even with invalid key, Infura returns balance')
     w = ERC20::Wallet.new(
+      contract: ERC20::Wallet.USDT,
       host: 'mainnet.infura.io',
       http_path: '/v3/invalid-key-here',
       log: loog
