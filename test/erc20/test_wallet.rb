@@ -331,13 +331,14 @@ class TestWallet < ERC20::Test
   end
 
   def test_checks_balance_via_proxy
+    b = nil
     via_proxy do |proxy|
       on_hardhat do |w|
         wallet = through_proxy(w, proxy)
         b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
-        assert_equal(123_000_100_000, b)
       end
     end
+    assert_equal(123_000_100_000, b)
   end
 
   def test_checks_balance_via_proxy_on_mainnet

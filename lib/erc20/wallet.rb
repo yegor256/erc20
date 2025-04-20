@@ -326,54 +326,58 @@ class ERC20::Wallet
       attempt = []
       log_url = "ws#{@ssl ? 's' : ''}://#{u.hostname}:#{u.port}"
       ws.on(:open) do
-        verbose do
-          log.debug("Connected to #{log_url}")
+        safe do
+          verbose do
+            log.debug("Connected to #{log_url}")
+          end
         end
       end
       ws.on(:message) do |msg|
-        verbose do
-          data = to_json(msg)
-          if data['id']
-            before = active.to_a
-            attempt.each do |a|
-              active.append(a) unless before.include?(a)
-            end
-            log.debug(
-              "Subscribed ##{subscription_id} to #{active.to_a.size} addresses at #{log_url}: " \
-              "#{active.to_a.map { |a| a[0..6] }.join(', ')}"
-            )
-          elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
-            event = data['params']['result']
-            if raw
-              log.debug("New event arrived from #{event['address']}")
-            else
-              event = {
-                amount: event['data'].to_i(16),
-                from: "0x#{event['topics'][1][26..].downcase}",
-                to: "0x#{event['topics'][2][26..].downcase}",
-                txn: event['transactionHash'].downcase
-              }
+        safe do
+          verbose do
+            data = to_json(msg)
+            if data['id']
+              before = active.to_a
+              attempt.each do |a|
+                active.append(a) unless before.include?(a)
+              end
               log.debug(
-                "Payment of #{event[:amount]} tokens arrived " \
-                "from #{event[:from]} to #{event[:to]} in #{event[:txn]}"
+                "Subscribed ##{subscription_id} to #{active.to_a.size} addresses at #{log_url}: " \
+                "#{active.to_a.map { |a| a[0..6] }.join(', ')}"
               )
-            end
-            begin
+            elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
+              event = data['params']['result']
+              if raw
+                log.debug("New event arrived from #{event['address']}")
+              else
+                event = {
+                  amount: event['data'].to_i(16),
+                  from: "0x#{event['topics'][1][26..].downcase}",
+                  to: "0x#{event['topics'][2][26..].downcase}",
+                  txn: event['transactionHash'].downcase
+                }
+                log.debug(
+                  "Payment of #{event[:amount]} tokens arrived " \
+                  "from #{event[:from]} to #{event[:to]} in #{event[:txn]}"
+                )
+              end
               yield event
-            rescue StandardError => e
-              @log.error(Backtrace.new(e).to_s)
             end
           end
         end
       end
       ws.on(:close) do
-        verbose do
-          log.debug("Disconnected from #{log_url}")
+        safe do
+          verbose do
+            log.debug("Disconnected from #{log_url}")
+          end
         end
       end
       ws.on(:error) do |e|
-        verbose do
-          log.debug("Error at #{log_url}: #{e.message}")
+        safe do
+          verbose do
+            log.debug("Error at #{log_url}: #{e.message}")
+          end
         end
       end
       EventMachine.add_periodic_timer(delay) do
@@ -420,15 +424,22 @@ class ERC20::Wallet
     raise e
   end
 
+  def safe
+    yield
+  rescue StandardError
+    # ignore it
+  end
+
   def url(http: true)
     URI.parse("#{http ? 'http' : 'ws'}#{@ssl ? 's' : ''}://#{@host}:#{@port}#{http ? @http_path : @ws_path}")
   end
 
   def jsonrpc
     JSONRPC.logger = Loog::NULL
-    connection =
-      if @proxy
-        uri = URI.parse(@proxy)
+    opts = {}
+    if @proxy
+      uri = URI.parse(@proxy)
+      opts[:connection] =
         Faraday.new do |f|
           f.adapter(Faraday.default_adapter)
           f.proxy = {
@@ -437,8 +448,8 @@ class ERC20::Wallet
             password: uri.password
           }
         end
-      end
-    JSONRPC::Client.new(url.to_s, connection:)
+    end
+    JSONRPC::Client.new(url.to_s, opts)
   end
 
   def to_pay_data(address, amount)
