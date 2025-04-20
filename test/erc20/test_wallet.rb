@@ -203,7 +203,6 @@ class TestWallet < ERC20::Test
 
   def test_accepts_many_payments_on_hardhat
     walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
-    jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
     on_hardhat do |wallet|
       active = []
       events = Concurrent::Set.new
@@ -230,7 +229,6 @@ class TestWallet < ERC20::Test
 
   def test_accepts_payments_with_failures_on_hardhat
     walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
-    jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
     on_hardhat do |wallet|
       active = []
       events = Concurrent::Set.new
