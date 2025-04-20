@@ -228,6 +228,32 @@ class TestWallet < ERC20::Test
     end
   end
 
+  def test_accepts_payments_with_failures_on_hardhat
+    walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
+    jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
+    on_hardhat do |wallet|
+      active = []
+      events = Concurrent::Set.new
+      total = 10
+      daemon =
+        Thread.new do
+          wallet.accept([walter], active) do |e|
+            events.add(e)
+            raise 'intentional'
+          end
+        end
+      wait_for { !active.empty? }
+      sum = 1_234
+      Threads.new(total).assert do
+        wallet.pay(JEFF, walter, sum)
+      end
+      wait_for { events.size == total }
+      daemon.kill
+      daemon.join(30)
+      assert_equal(total, events.size)
+    end
+  end
+
   def test_accepts_payments_on_changing_addresses_on_hardhat
     walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
     jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase

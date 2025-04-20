@@ -358,7 +358,11 @@ class ERC20::Wallet
                 "from #{event[:from]} to #{event[:to]} in #{event[:txn]}"
               )
             end
-            yield event
+            begin
+              yield event
+            rescue StandardError => e
+              @log.error(Backtrace.new(e).to_s)
+            end
           end
         end
       end
