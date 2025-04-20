@@ -121,7 +121,7 @@ class ERC20::Wallet
     data = "0x#{func}000000000000000000000000#{address[2..].downcase}"
     r = jsonrpc.eth_call({ to: @contract, data: data }, 'latest')
     b = r[2..].to_i(16)
-    @log.debug("Balance of #{address} is #{b} ERC20 tokens")
+    @log.debug("The balance of #{address} is #{b} ERC20 tokens")
     b
   end
 
@@ -138,7 +138,7 @@ class ERC20::Wallet
     raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(address)
     r = jsonrpc.eth_getBalance(address, 'latest')
     b = r[2..].to_i(16)
-    @log.debug("Balance of #{address} is #{b} ETHs")
+    @log.debug("The balance of #{address} is #{b} ETHs")
     b
   end
 
