@@ -7,6 +7,7 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'backtrace', '>0', require: false
+gem 'concurrent-ruby', '~>1.2', require: false
 gem 'cucumber', '~>9.2', require: false
 gem 'donce', '>0', require: false
 gem 'faraday', '>0', require: false
