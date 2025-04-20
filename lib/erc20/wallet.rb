@@ -438,7 +438,7 @@ class ERC20::Wallet
           }
         end
       end
-    JSONRPC::Client.new(url, connection:)
+    JSONRPC::Client.new(url.to_s, connection:)
   end
 
   def to_pay_data(address, amount)
