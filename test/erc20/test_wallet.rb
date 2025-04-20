@@ -210,7 +210,7 @@ class TestWallet < ERC20::Test
       total = 10
       daemon =
         Thread.new do
-          wallet.accept([walter, jeff], active) do |e|
+          wallet.accept([walter], active) do |e|
             events.add(e)
           end
         rescue StandardError => e
