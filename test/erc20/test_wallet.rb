@@ -7,7 +7,7 @@ require 'backtrace'
 require 'donce'
 require 'eth'
 require 'faraday'
-require 'loog'
+require 'json'
 require 'random-port'
 require 'shellwords'
 require 'threads'
@@ -31,18 +31,21 @@ class TestWallet < ERC20::Test
   WALTER = '91f9111b1744d55361e632771a4e53839e9442a9fef45febc0a5c838c686a15b'
 
   def test_checks_balance_on_mainnet
+    WebMock.enable_net_connect!
     b = mainnet.balance(STABLE)
     refute_nil(b)
     assert_equal(8_000_000, b) # this is $8 USDT
   end
 
   def test_checks_eth_balance_on_mainnet
+    WebMock.enable_net_connect!
     b = mainnet.eth_balance(STABLE)
     refute_nil(b)
     assert_equal(4_200_000_000_000_000, b) # this is 0.0042 ETH
   end
 
   def test_checks_balance_of_absent_address
+    WebMock.enable_net_connect!
     a = '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff'
     b = mainnet.balance(a)
     refute_nil(b)
@@ -50,6 +53,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_checks_gas_estimate_on_mainnet
+    WebMock.enable_net_connect!
     b = mainnet.gas_estimate(STABLE, Eth::Key.new(priv: JEFF).address.to_s, 44_000)
     refute_nil(b)
     assert_predicate(b, :positive?)
@@ -57,28 +61,45 @@ class TestWallet < ERC20::Test
   end
 
   def test_fails_with_invalid_infura_key
+    WebMock.enable_net_connect!
     skip('Apparently, even with invalid key, Infura returns balance')
     w = ERC20::Wallet.new(
       contract: ERC20::Wallet.USDT,
       host: 'mainnet.infura.io',
       http_path: '/v3/invalid-key-here',
-      log: loog
+      log: fake_loog
     )
-    assert_raises(StandardError) { p w.balance(STABLE) }
+    assert_raises(StandardError) { w.balance(STABLE) }
+  end
+
+  def test_logs_to_stdout
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      body: { jsonrpc: '2.0', id: 42, result: '0x1F1F1F' }.to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    w = ERC20::Wallet.new(
+      host: 'example.org',
+      http_path: '/',
+      log: $stdout
+    )
+    w.balance(STABLE)
   end
 
   def test_checks_balance_on_testnet
+    WebMock.enable_net_connect!
     b = testnet.balance(STABLE)
     refute_nil(b)
     assert_predicate(b, :zero?)
   end
 
   def test_checks_balance_on_polygon
+    WebMock.enable_net_connect!
     w = ERC20::Wallet.new(
       contract: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
       host: 'polygon-mainnet.infura.io',
       http_path: "/v3/#{env('INFURA_KEY')}",
-      log: loog
+      log: fake_loog
     )
     b = w.balance(STABLE)
     refute_nil(b)
@@ -86,6 +107,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_checks_gas_estimate_on_hardhat
+    WebMock.enable_net_connect!
     sum = 100_000
     on_hardhat do |wallet|
       b1 = wallet.gas_estimate(
@@ -98,6 +120,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_checks_balance_on_hardhat
+    WebMock.enable_net_connect!
     on_hardhat do |wallet|
       b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
       assert_equal(123_000_100_000, b)
@@ -105,6 +128,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_checks_eth_balance_on_hardhat
+    WebMock.enable_net_connect!
     on_hardhat do |wallet|
       b = wallet.balance(Eth::Key.new(priv: WALTER).address.to_s)
       assert_equal(456_000_000_000, b)
@@ -112,6 +136,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_checks_balance_on_hardhat_in_threads
+    WebMock.enable_net_connect!
     on_hardhat do |wallet|
       Threads.new.assert do
         b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
@@ -121,6 +146,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_pays_on_hardhat
+    WebMock.enable_net_connect!
     on_hardhat do |wallet|
       to = Eth::Key.new(priv: WALTER).address.to_s
       before = wallet.balance(to)
@@ -135,6 +161,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_eth_pays_on_hardhat
+    WebMock.enable_net_connect!
     on_hardhat do |wallet|
       to = Eth::Key.new(priv: WALTER).address.to_s
       before = wallet.eth_balance(to)
@@ -149,6 +176,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_pays_on_hardhat_in_threads
+    WebMock.enable_net_connect!
     on_hardhat do |wallet|
       to = Eth::Key.new(priv: WALTER).address.to_s
       before = wallet.balance(to)
@@ -162,6 +190,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_pays_eth_on_hardhat_in_threads
+    WebMock.enable_net_connect!
     on_hardhat do |wallet|
       to = Eth::Key.new(priv: WALTER).address.to_s
       before = wallet.eth_balance(to)
@@ -175,6 +204,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_accepts_payments_on_hardhat
+    WebMock.enable_net_connect!
     walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
     jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
     on_hardhat do |wallet|
@@ -186,7 +216,7 @@ class TestWallet < ERC20::Test
             event = e
           end
         rescue StandardError => e
-          loog.error(Backtrace.new(e))
+          fake_loog.error(Backtrace.new(e))
         end
       wait_for { !active.empty? }
       sum = 77_000
@@ -202,6 +232,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_accepts_many_payments_on_hardhat
+    WebMock.enable_net_connect!
     walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
     on_hardhat do |wallet|
       active = []
@@ -213,7 +244,7 @@ class TestWallet < ERC20::Test
             events.add(e)
           end
         rescue StandardError => e
-          loog.error(Backtrace.new(e))
+          fake_loog.error(Backtrace.new(e))
         end
       wait_for { !active.empty? }
       sum = 1_234
@@ -228,6 +259,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_accepts_payments_with_failures_on_hardhat
+    WebMock.enable_net_connect!
     walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
     on_hardhat do |wallet|
       active = []
@@ -253,6 +285,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_accepts_payments_on_changing_addresses_on_hardhat
+    WebMock.enable_net_connect!
     walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
     jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
     addresses = Primitivo.new([walter])
@@ -265,7 +298,7 @@ class TestWallet < ERC20::Test
             event = e
           end
         rescue StandardError => e
-          loog.error(Backtrace.new(e))
+          fake_loog.error(Backtrace.new(e))
         end
       wait_for { active.to_a.include?(walter) }
       sum1 = 453_000
@@ -285,6 +318,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_accepts_payments_on_hardhat_via_proxy
+    WebMock.enable_net_connect!
     via_proxy do |proxy|
       walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
       jeff = Eth::Key.new(priv: JEFF).address.to_s.downcase
@@ -298,7 +332,7 @@ class TestWallet < ERC20::Test
               event = e
             end
           rescue StandardError => e
-            loog.error(Backtrace.new(e))
+            fake_loog.error(Backtrace.new(e))
           end
         wait_for { !active.empty? }
         sum = 55_000
@@ -312,6 +346,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_accepts_payments_on_mainnet
+    WebMock.enable_net_connect!
     active = []
     failed = false
     net = mainnet
@@ -322,7 +357,7 @@ class TestWallet < ERC20::Test
         end
       rescue StandardError => e
         failed = true
-        loog.error(Backtrace.new(e))
+        fake_loog.error(Backtrace.new(e))
       end
     wait_for { !active.empty? }
     daemon.kill
@@ -331,6 +366,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_checks_balance_via_proxy
+    WebMock.enable_net_connect!
     b = nil
     via_proxy do |proxy|
       on_hardhat do |w|
@@ -342,17 +378,19 @@ class TestWallet < ERC20::Test
   end
 
   def test_checks_balance_via_proxy_on_mainnet
+    WebMock.enable_net_connect!
     via_proxy do |proxy|
       w = ERC20::Wallet.new(
         host: 'mainnet.infura.io',
         http_path: "/v3/#{env('INFURA_KEY')}",
-        proxy:, log: loog
+        proxy:, log: fake_loog
       )
       assert_equal(8_000_000, w.balance(STABLE))
     end
   end
 
   def test_pays_on_mainnet
+    WebMock.enable_net_connect!
     skip('This is live, must be run manually')
     w = mainnet
     print 'Enter Ethereum ERC20 private key (64 chars): '
@@ -384,7 +422,12 @@ class TestWallet < ERC20::Test
         ws_path: "/#{env('GETBLOCK_WS_KEY')}"
       }
     ].map do |server|
-      ERC20::Wallet.new(host: server[:host], http_path: server[:http_path], ws_path: server[:ws_path], log: loog)
+      ERC20::Wallet.new(
+        host: server[:host],
+        http_path: server[:http_path],
+        ws_path: server[:ws_path],
+        log: fake_loog
+      )
     end.sample
   end
 
@@ -401,7 +444,12 @@ class TestWallet < ERC20::Test
         ws_path: "/#{env('GETBLOCK_SEPOILA_KEY')}"
       }
     ].map do |server|
-      ERC20::Wallet.new(host: server[:host], http_path: server[:http_path], ws_path: server[:ws_path], log: loog)
+      ERC20::Wallet.new(
+        host: server[:host],
+        http_path: server[:http_path],
+        ws_path: server[:ws_path],
+        log: fake_loog
+      )
     end.sample
   end
 
@@ -409,7 +457,7 @@ class TestWallet < ERC20::Test
     ERC20::Wallet.new(
       contract: wallet.contract, chain: wallet.chain,
       host: donce_host, port: wallet.port, http_path: wallet.http_path, ws_path: wallet.ws_path,
-      ssl: wallet.ssl, proxy:, log: loog
+      ssl: wallet.ssl, proxy:, log: fake_loog
     )
   end
 
@@ -419,7 +467,7 @@ class TestWallet < ERC20::Test
         image: 'yegor256/squid-proxy:latest',
         ports: { port => 3128 },
         env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' },
-        root: true, log: loog
+        root: true, log: fake_loog
       ) do
         yield "http://jeffrey:swordfish@localhost:#{port}"
       end
@@ -432,7 +480,7 @@ class TestWallet < ERC20::Test
         home: File.join(__dir__, '../../hardhat'),
         ports: { port => 8545 },
         command: 'npx hardhat node',
-        log: loog
+        log: fake_loog
       ) do
         wait_for_port(port)
         cmd = [
@@ -445,13 +493,13 @@ class TestWallet < ERC20::Test
           home: File.join(__dir__, '../../hardhat'),
           command: "/bin/bash -c #{Shellwords.escape(cmd)}",
           build_args: { 'HOST' => donce_host, 'PORT' => port },
-          log: loog,
+          log: fake_loog,
           root: true
         ).split("\n").last
         wallet = ERC20::Wallet.new(
           contract:, chain: 4242,
           host: 'localhost', port:, http_path: '/', ws_path: '/', ssl: false,
-          log: loog
+          log: fake_loog
         )
         yield wallet
       end

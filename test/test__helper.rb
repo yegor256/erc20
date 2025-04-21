@@ -51,12 +51,14 @@ class Primitivo
   end
 end
 
+require 'webmock/minitest'
+
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class ERC20::Test < Minitest::Test
-  def loog
+  def fake_loog
     ENV['RAKE'] ? Loog::ERRORS : Loog::VERBOSE
   end
 

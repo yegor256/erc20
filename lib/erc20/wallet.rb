@@ -121,7 +121,7 @@ class ERC20::Wallet
     data = "0x#{func}000000000000000000000000#{address[2..].downcase}"
     r = jsonrpc.eth_call({ to: @contract, data: data }, 'latest')
     b = r[2..].to_i(16)
-    @log.debug("The balance of #{address} is #{b} ERC20 tokens")
+    log_it(:debug, "The balance of #{address} is #{b} ERC20 tokens")
     b
   end
 
@@ -138,7 +138,7 @@ class ERC20::Wallet
     raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(address)
     r = jsonrpc.eth_getBalance(address, 'latest')
     b = r[2..].to_i(16)
-    @log.debug("The balance of #{address} is #{b} ETHs")
+    log_it(:debug, "The balance of #{address} is #{b} ETHs")
     b
   end
 
@@ -159,7 +159,7 @@ class ERC20::Wallet
     raise "Amount (#{amount}) must be an Integer" unless amount.is_a?(Integer)
     raise "Amount (#{amount}) must be a positive Integer" unless amount.positive?
     gas = jsonrpc.eth_estimateGas({ from:, to: @contract, data: to_pay_data(to, amount) }, 'latest').to_i(16)
-    @log.debug("It would take #{gas} gas units to send #{amount} tokens from #{from} to #{to}")
+    log_it(:debug, "It would take #{gas} gas units to send #{amount} tokens from #{from} to #{to}")
     gas
   end
 
@@ -177,7 +177,7 @@ class ERC20::Wallet
     block = jsonrpc.eth_getBlockByNumber('latest', false)
     raise "Can't get gas price, try again later" if block.nil?
     gwei = block['baseFeePerGas'].to_i(16)
-    @log.debug("The cost of one gas unit is #{gwei} gwei")
+    log_it(:debug, "The cost of one gas unit is #{gwei} gwei")
     gwei
   end
 
@@ -235,7 +235,7 @@ class ERC20::Wallet
         hex = "0x#{tx.hex}"
         jsonrpc.eth_sendRawTransaction(hex)
       end
-    @log.debug("Sent #{amount} ERC20 tokens from #{from} to #{address}: #{tnx}")
+    log_it(:debug, "Sent #{amount} ERC20 tokens from #{from} to #{address}: #{tnx}")
     tnx.downcase
   end
 
@@ -279,7 +279,7 @@ class ERC20::Wallet
         hex = "0x#{tx.hex}"
         jsonrpc.eth_sendRawTransaction(hex)
       end
-    @log.debug("Sent #{amount} ETHs from #{from} to #{address}: #{tnx}")
+    log_it(:debug, "Sent #{amount} ETHs from #{from} to #{address}: #{tnx}")
     tnx.downcase
   end
 
@@ -319,16 +319,15 @@ class ERC20::Wallet
     raise 'Subscription ID must be a positive Integer' unless subscription_id.positive?
     EventMachine.run do
       u = url(http: false)
-      @log.debug("Connecting to #{u.hostname}:#{u.port}...")
+      log_it(:debug, "Connecting to #{u.hostname}:#{u.port}...")
       ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {})
-      log = @log
       contract = @contract
       attempt = []
       log_url = "ws#{@ssl ? 's' : ''}://#{u.hostname}:#{u.port}"
       ws.on(:open) do
         safe do
           verbose do
-            log.debug("Connected to #{log_url}")
+            log_it(:debug, "Connected to #{log_url}")
           end
         end
       end
@@ -341,14 +340,15 @@ class ERC20::Wallet
               attempt.each do |a|
                 active.append(a) unless before.include?(a)
               end
-              log.debug(
+              log_it(
+                :debug,
                 "Subscribed ##{subscription_id} to #{active.to_a.size} addresses at #{log_url}: " \
                 "#{active.to_a.map { |a| a[0..6] }.join(', ')}"
               )
             elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
               event = data['params']['result']
               if raw
-                log.debug("New event arrived from #{event['address']}")
+                log_it(:debug, "New event arrived from #{event['address']}")
               else
                 event = {
                   amount: event['data'].to_i(16),
@@ -356,7 +356,8 @@ class ERC20::Wallet
                   to: "0x#{event['topics'][2][26..].downcase}",
                   txn: event['transactionHash'].downcase
                 }
-                log.debug(
+                log_it(
+                  :debug,
                   "Payment of #{event[:amount]} tokens arrived " \
                   "from #{event[:from]} to #{event[:to]} in #{event[:txn]}"
                 )
@@ -369,14 +370,14 @@ class ERC20::Wallet
       ws.on(:close) do
         safe do
           verbose do
-            log.debug("Disconnected from #{log_url}")
+            log_it(:debug, "Disconnected from #{log_url}")
           end
         end
       end
       ws.on(:error) do |e|
         safe do
           verbose do
-            log.debug("Error at #{log_url}: #{e.message}")
+            log_it(:debug, "Error at #{log_url}: #{e.message}")
           end
         end
       end
@@ -401,7 +402,8 @@ class ERC20::Wallet
             ]
           }.to_json
         )
-        log.debug(
+        log_it(
+          :debug,
           "Requested to subscribe ##{subscription_id} to #{addresses.to_a.size} addresses at #{log_url}: " \
           "#{addresses.to_a.map { |a| a[0..6] }.join(', ')}"
         )
@@ -420,7 +422,7 @@ class ERC20::Wallet
   def verbose
     yield
   rescue StandardError => e
-    @log.error(Backtrace.new(e).to_s)
+    log_it(:error, Backtrace.new(e).to_s)
     raise e
   end
 
@@ -459,5 +461,13 @@ class ERC20::Wallet
     amt_hex = amount.to_s(16)
     amt_padded = ('0' * (64 - amt_hex.size)) + amt_hex
     "0x#{func}#{to_padded}#{amt_padded}"
+  end
+
+  def log_it(method, msg)
+    if @log.respond_to?(method)
+      @log.__send__(method, msg)
+    elsif @log.respond_to?(:puts)
+      @log.puts(msg)
+    end
   end
 end

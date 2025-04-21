@@ -102,7 +102,7 @@ class TestFakeWallet < ERC20::Test
           event = e
         end
       rescue StandardError => e
-        loog.error(Backtrace.new(e))
+        fake_loog.error(Backtrace.new(e))
       end
     wait_for { !active.to_a.empty? }
     wait_for { !event.nil? }

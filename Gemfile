@@ -27,4 +27,5 @@ gem 'simplecov', '~>0.22', require: false
 gem 'simplecov-cobertura', '~>2.1', require: false
 gem 'threads', '~>0.4', require: false
 gem 'typhoeus', '>0', require: false
+gem 'webmock', '~>3.23', require: false
 gem 'yard', '~>0.9', require: false
