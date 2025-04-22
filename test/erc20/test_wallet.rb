@@ -7,6 +7,7 @@ require 'backtrace'
 require 'donce'
 require 'eth'
 require 'faraday'
+require 'fileutils'
 require 'json'
 require 'random-port'
 require 'shellwords'
@@ -228,6 +229,38 @@ class TestWallet < ERC20::Test
       assert_equal(jeff, event[:from])
       assert_equal(walter, event[:to])
       assert_equal(66, event[:txn].length)
+    end
+  end
+
+  def test_accepts_payments_on_hardhat_after_disconnect
+    WebMock.enable_net_connect!
+    walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
+    Dir.mktmpdir do |home|
+      die = File.join(home, 'die.txt')
+      on_hardhat(die:) do |wallet|
+        active = []
+        events = []
+        daemon =
+          Thread.new do
+            wallet.accept([walter], active) do |e|
+              events.append(e)
+            end
+          rescue StandardError => e
+            fake_loog.error(Backtrace.new(e))
+          end
+        wait_for { !active.empty? }
+        wallet.pay(JEFF, walter, 4_567)
+        wait_for { events.size == 1 }
+        FileUtils.touch(die)
+        sleep 3
+        on_hardhat(port: wallet.port) do |w2|
+          wallet.pay(JEFF, walter, 3_456)
+          wait_for { events.size == 2 }
+          daemon.kill
+          daemon.join(30)
+          assert_equal(2, events.size)
+        end
+      end
     end
   end
 
@@ -474,14 +507,32 @@ class TestWallet < ERC20::Test
     end
   end
 
-  def on_hardhat
-    RandomPort::Pool::SINGLETON.acquire do |port|
+  def on_hardhat(port: nil, die: nil)
+    RandomPort::Pool::SINGLETON.acquire do |rnd|
+      port = rnd if port.nil?
+      if die
+        killer = [
+          'while true; do',
+          "  if [ -e #{Shellwords.escape(File.join('/die', File.basename(die)))} ]; then",
+          '    ps -ax;',
+          '    kill -9 "${HARDHAT_PID}";',
+          '    echo "killed it";',
+          '    break;',
+          '  else',
+          '    echo "waiting...";',
+          '    sleep 1;',
+          '  fi;',
+          'done'
+        ].join
+      end
+      cmd = "set -ex; npx hardhat node & HARDHAT_PID=$!; export HARDHAT_PID; #{killer if die}"
       donce(
         home: File.join(__dir__, '../../hardhat'),
         ports: { port => 8545 },
-        command: 'npx hardhat node',
+        volumes: die ? { File.dirname(die) => '/die' } : {},
+        command: "/bin/bash -c #{Shellwords.escape(cmd)}",
         log: fake_loog
-      ) do
+      ) do |pid|
         wait_for_port(port)
         cmd = [
           '(cat hardhat.config.js)',

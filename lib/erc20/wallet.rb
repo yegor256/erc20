@@ -320,7 +320,7 @@ class ERC20::Wallet
     EventMachine.run do
       u = url(http: false)
       log_it(:debug, "Connecting to #{u.hostname}:#{u.port}...")
-      ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {})
+      ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {}, ping: 60)
       contract = @contract
       attempt = []
       log_url = "ws#{@ssl ? 's' : ''}://#{u.hostname}:#{u.port}"

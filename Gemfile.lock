@@ -51,7 +51,7 @@ GEM
     cucumber-tag-expressions (6.1.2)
     diff-lcs (1.6.1)
     docile (1.4.1)
-    donce (0.2.0)
+    donce (0.2.3)
       backtrace (~> 0.3)
       os (~> 1.1)
       qbash (~> 0.3)
@@ -211,7 +211,7 @@ DEPENDENCIES
   backtrace (> 0)
   concurrent-ruby (~> 1.2)
   cucumber (~> 9.2)
-  donce (> 0)
+  donce (>= 0.2.3)
   erc20!
   faraday (> 0)
   loog (> 0)
