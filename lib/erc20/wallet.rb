@@ -376,7 +376,7 @@ class ERC20::Wallet
           data = to_json(msg)
           if data['id']
             before = active.to_a.uniq
-            addresses.each do |a|
+            addresses.to_a.each do |a|
               next if before.include?(a)
               active.append(a)
             end
