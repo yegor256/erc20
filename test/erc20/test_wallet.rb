@@ -242,7 +242,7 @@ class TestWallet < ERC20::Test
         events = []
         daemon =
           Thread.new do
-            wallet.accept([walter], active) do |e|
+            wallet.accept([walter], active, subscription_id: 42) do |e|
               events.append(e)
             end
           rescue StandardError => e
@@ -252,13 +252,12 @@ class TestWallet < ERC20::Test
         wallet.pay(JEFF, walter, 4_567)
         wait_for { events.size == 1 }
         FileUtils.touch(die)
-        sleep 3
-        on_hardhat(port: wallet.port) do |w2|
+        on_hardhat(port: wallet.port) do
           wallet.pay(JEFF, walter, 3_456)
-          wait_for { events.size == 2 }
+          wait_for { events.size > 1 }
           daemon.kill
           daemon.join(30)
-          assert_equal(2, events.size)
+          assert_equal(3, events.size)
         end
       end
     end
@@ -512,27 +511,27 @@ class TestWallet < ERC20::Test
       port = rnd if port.nil?
       if die
         killer = [
+          '&',
+          'HARDHAT_PID=$!;',
+          'export HARDHAT_PID;',
           'while true; do',
           "  if [ -e #{Shellwords.escape(File.join('/die', File.basename(die)))} ]; then",
-          '    ps -ax;',
           '    kill -9 "${HARDHAT_PID}";',
-          '    echo "killed it";',
           '    break;',
           '  else',
-          '    echo "waiting...";',
-          '    sleep 1;',
+          '    sleep 0.1;',
           '  fi;',
           'done'
-        ].join
+        ].join(' ')
       end
-      cmd = "set -ex; npx hardhat node & HARDHAT_PID=$!; export HARDHAT_PID; #{killer if die}"
+      cmd = "npx hardhat node #{killer if die}"
       donce(
         home: File.join(__dir__, '../../hardhat'),
         ports: { port => 8545 },
         volumes: die ? { File.dirname(die) => '/die' } : {},
         command: "/bin/bash -c #{Shellwords.escape(cmd)}",
         log: fake_loog
-      ) do |pid|
+      ) do
         wait_for_port(port)
         cmd = [
           '(cat hardhat.config.js)',

@@ -308,7 +308,7 @@ class ERC20::Wallet
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
   # @param [Integer] delay How many seconds to wait between +eth_subscribe+ calls
   # @param [Integer] subscription_id Unique ID of the subscription
-  def accept(addresses, active = [], raw: false, delay: 1, subscription_id: rand(99_999))
+  def accept(addresses, active = [], raw: false, delay: 1, subscription_id: rand(99_999), &)
     raise 'Addresses can\'t be nil' unless addresses
     raise 'Addresses must respond to .to_a()' unless addresses.respond_to?(:to_a)
     raise 'Active can\'t be nil' unless active
@@ -318,72 +318,27 @@ class ERC20::Wallet
     raise 'Subscription ID must be an Integer' unless subscription_id.is_a?(Integer)
     raise 'Subscription ID must be a positive Integer' unless subscription_id.positive?
     EventMachine.run do
-      u = url(http: false)
-      log_it(:debug, "Connecting to #{u.hostname}:#{u.port}...")
-      ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {}, ping: 60)
-      contract = @contract
-      attempt = []
-      log_url = "ws#{@ssl ? 's' : ''}://#{u.hostname}:#{u.port}"
-      ws.on(:open) do
-        safe do
-          verbose do
-            log_it(:debug, "Connected to #{log_url}")
-          end
-        end
-      end
-      ws.on(:message) do |msg|
-        safe do
-          verbose do
-            data = to_json(msg)
-            if data['id']
-              before = active.to_a
-              attempt.each do |a|
-                active.append(a) unless before.include?(a)
-              end
-              log_it(
-                :debug,
-                "Subscribed ##{subscription_id} to #{active.to_a.size} addresses at #{log_url}: " \
-                "#{active.to_a.map { |a| a[0..6] }.join(', ')}"
-              )
-            elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
-              event = data['params']['result']
-              if raw
-                log_it(:debug, "New event arrived from #{event['address']}")
-              else
-                event = {
-                  amount: event['data'].to_i(16),
-                  from: "0x#{event['topics'][1][26..].downcase}",
-                  to: "0x#{event['topics'][2][26..].downcase}",
-                  txn: event['transactionHash'].downcase
-                }
-                log_it(
-                  :debug,
-                  "Payment of #{event[:amount]} tokens arrived " \
-                  "from #{event[:from]} to #{event[:to]} in #{event[:txn]}"
-                )
-              end
-              yield event
-            end
-          end
-        end
-      end
-      ws.on(:close) do
-        safe do
-          verbose do
-            log_it(:debug, "Disconnected from #{log_url}")
-          end
-        end
-      end
-      ws.on(:error) do |e|
-        safe do
-          verbose do
-            log_it(:debug, "Error at #{log_url}: #{e.message}")
-          end
-        end
-      end
+      reaccept(addresses, active, raw:, delay:, subscription_id:, &)
+    end
+  end
+
+  private
+
+  # @param [Array<String>] addresses Addresses to monitor
+  # @param [Array] active List of addresses that we are actually listening to
+  # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
+  # @param [Integer] delay How many seconds to wait between +eth_subscribe+ calls
+  # @param [Integer] subscription_id Unique ID of the subscription
+  # @return [Websocket]
+  def reaccept(addresses, active, raw:, delay:, subscription_id:, &)
+    u = url(http: false)
+    log_it(:debug, "Connecting ##{subscription_id} to #{u.hostname}:#{u.port}...")
+    contract = @contract
+    log_url = "ws#{@ssl ? 's' : ''}://#{u.hostname}:#{u.port}"
+    ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {}, ping: 60)
+    timer =
       EventMachine.add_periodic_timer(delay) do
         next if active.to_a.sort == addresses.to_a.sort
-        attempt = addresses.to_a
         ws.send(
           {
             jsonrpc: '2.0',
@@ -404,14 +359,73 @@ class ERC20::Wallet
         )
         log_it(
           :debug,
-          "Requested to subscribe ##{subscription_id} to #{addresses.to_a.size} addresses at #{log_url}: " \
+          "Requested to subscribe ##{subscription_id} to #{addresses.to_a.size} addresses: " \
           "#{addresses.to_a.map { |a| a[0..6] }.join(', ')}"
         )
       end
+    ws.on(:open) do
+      safe do
+        verbose do
+          log_it(:debug, "Connected ##{subscription_id} to #{log_url}")
+        end
+      end
+    end
+    ws.on(:message) do |msg|
+      safe do
+        verbose do
+          data = to_json(msg)
+          if data['id']
+            before = active.to_a.uniq
+            addresses.each do |a|
+              next if before.include?(a)
+              active.append(a)
+            end
+            log_it(
+              :debug,
+              "Subscribed ##{subscription_id} to #{active.to_a.size} addresses at #{log_url}: " \
+              "#{active.to_a.map { |a| a[0..6] }.join(', ')}"
+            )
+          elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
+            event = data['params']['result']
+            if raw
+              log_it(:debug, "New event arrived from #{event['address']}")
+            else
+              event = {
+                amount: event['data'].to_i(16),
+                from: "0x#{event['topics'][1][26..].downcase}",
+                to: "0x#{event['topics'][2][26..].downcase}",
+                txn: event['transactionHash'].downcase
+              }
+              log_it(
+                :debug,
+                "Payment of #{event[:amount]} tokens arrived at ##{subscription_id} " \
+                "from #{event[:from]} to #{event[:to]} in #{event[:txn]}"
+              )
+            end
+            yield event
+          end
+        end
+      end
+    end
+    ws.on(:close) do
+      safe do
+        verbose do
+          log_it(:debug, "Disconnected ##{subscription_id} from #{log_url}")
+          sleep(delay)
+          active.clear
+          timer.cancel
+          reaccept(addresses, active, raw:, delay:, subscription_id: subscription_id + 1, &)
+        end
+      end
+    end
+    ws.on(:error) do |e|
+      safe do
+        verbose do
+          log_it(:debug, "Failed ##{subscription_id} at #{log_url}: #{e.message}")
+        end
+      end
     end
   end
-
-  private
 
   def to_json(msg)
     JSON.parse(msg.data)
