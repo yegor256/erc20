@@ -218,6 +218,7 @@ DEPENDENCIES
   minitest (~> 5.25)
   minitest-reporters (~> 1.7)
   minitest-retry (~> 0.2)
+  os (> 0)
   qbash (> 0)
   rake (~> 13.2)
   random-port (> 0)

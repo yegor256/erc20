@@ -9,6 +9,7 @@ require 'eth'
 require 'faraday'
 require 'fileutils'
 require 'json'
+require 'os'
 require 'random-port'
 require 'shellwords'
 require 'threads'
@@ -233,6 +234,7 @@ class TestWallet < ERC20::Test
   end
 
   def test_accepts_payments_on_hardhat_after_disconnect
+    skip('Works only on macOS') unless OS.mac?
     WebMock.enable_net_connect!
     walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
     Dir.mktmpdir do |home|
