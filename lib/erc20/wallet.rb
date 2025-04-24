@@ -336,37 +336,38 @@ class ERC20::Wallet
     contract = @contract
     log_url = "ws#{@ssl ? 's' : ''}://#{u.hostname}:#{u.port}"
     ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {}, ping: 60)
-    timer =
-      EventMachine.add_periodic_timer(delay) do
-        next if active.to_a.sort == addresses.to_a.sort
-        ws.send(
-          {
-            jsonrpc: '2.0',
-            id: subscription_id,
-            method: 'eth_subscribe',
-            params: [
-              'logs',
-              {
-                address: contract,
-                topics: [
-                  '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
-                  nil,
-                  addresses.to_a.map { |a| "0x000000000000000000000000#{a[2..]}" }
-                ]
-              }
-            ]
-          }.to_json
-        )
-        log_it(
-          :debug,
-          "Requested to subscribe ##{subscription_id} to #{addresses.to_a.size} addresses: " \
-          "#{addresses.to_a.map { |a| a[0..6] }.join(', ')}"
-        )
-      end
+    timer = nil
     ws.on(:open) do
       safe do
         verbose do
           log_it(:debug, "Connected ##{subscription_id} to #{log_url}")
+          timer =
+            EventMachine.add_periodic_timer(delay) do
+              next if active.to_a.sort == addresses.to_a.sort
+              ws.send(
+                {
+                  jsonrpc: '2.0',
+                  id: subscription_id,
+                  method: 'eth_subscribe',
+                  params: [
+                    'logs',
+                    {
+                      address: contract,
+                      topics: [
+                        '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+                        nil,
+                        addresses.to_a.map { |a| "0x000000000000000000000000#{a[2..]}" }
+                      ]
+                    }
+                  ]
+                }.to_json
+              )
+              log_it(
+                :debug,
+                "Requested to subscribe ##{subscription_id} to #{addresses.to_a.size} addresses: " \
+                "#{addresses.to_a.map { |a| a[0..6] }.join(', ')}"
+              )
+            end
         end
       end
     end
@@ -413,7 +414,7 @@ class ERC20::Wallet
           log_it(:debug, "Disconnected ##{subscription_id} from #{log_url}")
           sleep(delay)
           active.clear
-          timer.cancel
+          timer&.cancel
           reaccept(addresses, active, raw:, delay:, subscription_id: subscription_id + 1, &)
         end
       end

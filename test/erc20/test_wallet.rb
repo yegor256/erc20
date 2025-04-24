@@ -22,57 +22,11 @@ require_relative '../../lib/erc20/wallet'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWallet < ERC20::Test
-  # At this address, in Ethereum mainnet, there are $8 USDT and 0.0042 ETH. I won't
-  # move them anyway, that's why tests can use this address forever.
-  STABLE = '0x7232148927F8a580053792f44D4d59d40Fd00ABD'
-
   # One guy private hex.
   JEFF = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
 
   # Another guy private hex.
   WALTER = '91f9111b1744d55361e632771a4e53839e9442a9fef45febc0a5c838c686a15b'
-
-  def test_checks_balance_on_mainnet
-    WebMock.enable_net_connect!
-    b = mainnet.balance(STABLE)
-    refute_nil(b)
-    assert_equal(8_000_000, b) # this is $8 USDT
-  end
-
-  def test_checks_eth_balance_on_mainnet
-    WebMock.enable_net_connect!
-    b = mainnet.eth_balance(STABLE)
-    refute_nil(b)
-    assert_equal(4_200_000_000_000_000, b) # this is 0.0042 ETH
-  end
-
-  def test_checks_balance_of_absent_address
-    WebMock.enable_net_connect!
-    a = '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff'
-    b = mainnet.balance(a)
-    refute_nil(b)
-    assert_equal(0, b)
-  end
-
-  def test_checks_gas_estimate_on_mainnet
-    WebMock.enable_net_connect!
-    b = mainnet.gas_estimate(STABLE, Eth::Key.new(priv: JEFF).address.to_s, 44_000)
-    refute_nil(b)
-    assert_predicate(b, :positive?)
-    assert_operator(b, :>, 1000)
-  end
-
-  def test_fails_with_invalid_infura_key
-    WebMock.enable_net_connect!
-    skip('Apparently, even with invalid key, Infura returns balance')
-    w = ERC20::Wallet.new(
-      contract: ERC20::Wallet.USDT,
-      host: 'mainnet.infura.io',
-      http_path: '/v3/invalid-key-here',
-      log: fake_loog
-    )
-    assert_raises(StandardError) { w.balance(STABLE) }
-  end
 
   def test_logs_to_stdout
     WebMock.disable_net_connect!
@@ -85,25 +39,12 @@ class TestWallet < ERC20::Test
       http_path: '/',
       log: $stdout
     )
-    w.balance(STABLE)
+    w.balance(Eth::Key.new(priv: JEFF).address.to_s)
   end
 
   def test_checks_balance_on_testnet
     WebMock.enable_net_connect!
-    b = testnet.balance(STABLE)
-    refute_nil(b)
-    assert_predicate(b, :zero?)
-  end
-
-  def test_checks_balance_on_polygon
-    WebMock.enable_net_connect!
-    w = ERC20::Wallet.new(
-      contract: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-      host: 'polygon-mainnet.infura.io',
-      http_path: "/v3/#{env('INFURA_KEY')}",
-      log: fake_loog
-    )
-    b = w.balance(STABLE)
+    b = testnet.balance(Eth::Key.new(priv: JEFF).address.to_s)
     refute_nil(b)
     assert_predicate(b, :zero?)
   end
@@ -379,26 +320,6 @@ class TestWallet < ERC20::Test
     end
   end
 
-  def test_accepts_payments_on_mainnet
-    WebMock.enable_net_connect!
-    active = []
-    failed = false
-    net = mainnet
-    daemon =
-      Thread.new do
-        net.accept([STABLE], active) do |_|
-          # ignore it
-        end
-      rescue StandardError => e
-        failed = true
-        fake_loog.error(Backtrace.new(e))
-      end
-    wait_for { !active.empty? }
-    daemon.kill
-    daemon.join(30)
-    refute(failed)
-  end
-
   def test_checks_balance_via_proxy
     WebMock.enable_net_connect!
     b = nil
@@ -409,152 +330,5 @@ class TestWallet < ERC20::Test
       end
     end
     assert_equal(123_000_100_000, b)
-  end
-
-  def test_checks_balance_via_proxy_on_mainnet
-    WebMock.enable_net_connect!
-    via_proxy do |proxy|
-      w = ERC20::Wallet.new(
-        host: 'mainnet.infura.io',
-        http_path: "/v3/#{env('INFURA_KEY')}",
-        proxy:, log: fake_loog
-      )
-      assert_equal(8_000_000, w.balance(STABLE))
-    end
-  end
-
-  def test_pays_on_mainnet
-    WebMock.enable_net_connect!
-    skip('This is live, must be run manually')
-    w = mainnet
-    print 'Enter Ethereum ERC20 private key (64 chars): '
-    priv = gets.chomp
-    to = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
-    txn = w.pay(priv, to, 1_990_000)
-    assert_equal(66, txn.length)
-  end
-
-  private
-
-  def env(var)
-    key = ENV.fetch(var, nil)
-    skip("The #{var} environment variable is not set") if key.nil?
-    skip("The #{var} environment variable is empty") if key.empty?
-    key
-  end
-
-  def mainnet
-    [
-      {
-        host: 'mainnet.infura.io',
-        http_path: "/v3/#{env('INFURA_KEY')}",
-        ws_path: "/ws/v3/#{env('INFURA_KEY')}"
-      },
-      {
-        host: 'go.getblock.io',
-        http_path: "/#{env('GETBLOCK_KEY')}",
-        ws_path: "/#{env('GETBLOCK_WS_KEY')}"
-      }
-    ].map do |server|
-      ERC20::Wallet.new(
-        host: server[:host],
-        http_path: server[:http_path],
-        ws_path: server[:ws_path],
-        log: fake_loog
-      )
-    end.sample
-  end
-
-  def testnet
-    [
-      {
-        host: 'sepolia.infura.io',
-        http_path: "/v3/#{env('INFURA_KEY')}",
-        ws_path: "/ws/v3/#{env('INFURA_KEY')}"
-      },
-      {
-        host: 'go.getblock.io',
-        http_path: "/#{env('GETBLOCK_SEPOILA_KEY')}",
-        ws_path: "/#{env('GETBLOCK_SEPOILA_KEY')}"
-      }
-    ].map do |server|
-      ERC20::Wallet.new(
-        host: server[:host],
-        http_path: server[:http_path],
-        ws_path: server[:ws_path],
-        log: fake_loog
-      )
-    end.sample
-  end
-
-  def through_proxy(wallet, proxy)
-    ERC20::Wallet.new(
-      contract: wallet.contract, chain: wallet.chain,
-      host: donce_host, port: wallet.port, http_path: wallet.http_path, ws_path: wallet.ws_path,
-      ssl: wallet.ssl, proxy:, log: fake_loog
-    )
-  end
-
-  def via_proxy
-    RandomPort::Pool::SINGLETON.acquire do |port|
-      donce(
-        image: 'yegor256/squid-proxy:latest',
-        ports: { port => 3128 },
-        env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' },
-        root: true, log: fake_loog
-      ) do
-        yield "http://jeffrey:swordfish@localhost:#{port}"
-      end
-    end
-  end
-
-  def on_hardhat(port: nil, die: nil)
-    RandomPort::Pool::SINGLETON.acquire do |rnd|
-      port = rnd if port.nil?
-      if die
-        killer = [
-          '&',
-          'HARDHAT_PID=$!;',
-          'export HARDHAT_PID;',
-          'while true; do',
-          "  if [ -e #{Shellwords.escape(File.join('/die', File.basename(die)))} ]; then",
-          '    kill -9 "${HARDHAT_PID}";',
-          '    break;',
-          '  else',
-          '    sleep 0.1;',
-          '  fi;',
-          'done'
-        ].join(' ')
-      end
-      cmd = "npx hardhat node #{killer if die}"
-      donce(
-        home: File.join(__dir__, '../../hardhat'),
-        ports: { port => 8545 },
-        volumes: die ? { File.dirname(die) => '/die' } : {},
-        command: "/bin/bash -c #{Shellwords.escape(cmd)}",
-        log: fake_loog
-      ) do
-        wait_for_port(port)
-        cmd = [
-          '(cat hardhat.config.js)',
-          '(ls -al)',
-          '(echo y | npx hardhat ignition deploy ./ignition/modules/Foo.ts --network foo --deployment-id foo)',
-          '(npx hardhat ignition status foo | tail -1 | cut -d" " -f3)'
-        ].join(' && ')
-        contract = donce(
-          home: File.join(__dir__, '../../hardhat'),
-          command: "/bin/bash -c #{Shellwords.escape(cmd)}",
-          build_args: { 'HOST' => donce_host, 'PORT' => port },
-          log: fake_loog,
-          root: true
-        ).split("\n").last
-        wallet = ERC20::Wallet.new(
-          contract:, chain: 4242,
-          host: 'localhost', port:, http_path: '/', ws_path: '/', ssl: false,
-          log: fake_loog
-        )
-        yield wallet
-      end
-    end
   end
 end

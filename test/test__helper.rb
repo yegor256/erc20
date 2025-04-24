@@ -42,6 +42,10 @@ class Primitivo
     @array = array
   end
 
+  def clear
+    @array.clear
+  end
+
   def to_a
     @array.to_a
   end
@@ -76,5 +80,127 @@ class ERC20::Test < Minitest::Test
 
   def wait_for_port(port)
     wait_for { Typhoeus::Request.get("http://localhost:#{port}").code == 200 }
+  end
+
+  def env(var)
+    key = ENV.fetch(var, nil)
+    skip("The #{var} environment variable is not set") if key.nil?
+    skip("The #{var} environment variable is empty") if key.empty?
+    key
+  end
+
+  def mainnet
+    [
+      {
+        host: 'mainnet.infura.io',
+        http_path: "/v3/#{env('INFURA_KEY')}",
+        ws_path: "/ws/v3/#{env('INFURA_KEY')}"
+      },
+      {
+        host: 'go.getblock.io',
+        http_path: "/#{env('GETBLOCK_KEY')}",
+        ws_path: "/#{env('GETBLOCK_WS_KEY')}"
+      }
+    ].map do |server|
+      ERC20::Wallet.new(
+        host: server[:host],
+        http_path: server[:http_path],
+        ws_path: server[:ws_path],
+        log: fake_loog
+      )
+    end.sample
+  end
+
+  def testnet
+    [
+      {
+        host: 'sepolia.infura.io',
+        http_path: "/v3/#{env('INFURA_KEY')}",
+        ws_path: "/ws/v3/#{env('INFURA_KEY')}"
+      },
+      {
+        host: 'go.getblock.io',
+        http_path: "/#{env('GETBLOCK_SEPOILA_KEY')}",
+        ws_path: "/#{env('GETBLOCK_SEPOILA_KEY')}"
+      }
+    ].map do |server|
+      ERC20::Wallet.new(
+        host: server[:host],
+        http_path: server[:http_path],
+        ws_path: server[:ws_path],
+        log: fake_loog
+      )
+    end.sample
+  end
+
+  def through_proxy(wallet, proxy)
+    ERC20::Wallet.new(
+      contract: wallet.contract, chain: wallet.chain,
+      host: donce_host, port: wallet.port, http_path: wallet.http_path, ws_path: wallet.ws_path,
+      ssl: wallet.ssl, proxy:, log: fake_loog
+    )
+  end
+
+  def via_proxy
+    RandomPort::Pool::SINGLETON.acquire do |port|
+      donce(
+        image: 'yegor256/squid-proxy:latest',
+        ports: { port => 3128 },
+        env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' },
+        root: true, log: fake_loog
+      ) do
+        yield "http://jeffrey:swordfish@localhost:#{port}"
+      end
+    end
+  end
+
+  def on_hardhat(port: nil, die: nil)
+    RandomPort::Pool::SINGLETON.acquire do |rnd|
+      port = rnd if port.nil?
+      if die
+        killer = [
+          '&',
+          'HARDHAT_PID=$!;',
+          'export HARDHAT_PID;',
+          'while true; do',
+          "  if [ -e #{Shellwords.escape(File.join('/die', File.basename(die)))} ]; then",
+          '    kill -9 "${HARDHAT_PID}";',
+          '    break;',
+          '  else',
+          '    sleep 0.1;',
+          '  fi;',
+          'done'
+        ].join(' ')
+      end
+      cmd = "npx hardhat node #{killer if die}"
+      donce(
+        home: File.join(__dir__, '../hardhat'),
+        ports: { port => 8545 },
+        volumes: die ? { File.dirname(die) => '/die' } : {},
+        command: "/bin/bash -c #{Shellwords.escape(cmd)}",
+        log: fake_loog
+      ) do
+        wait_for_port(port)
+        cmd = [
+          '(cat hardhat.config.js)',
+          '(ls -al)',
+          '(echo y | npx hardhat ignition deploy ./ignition/modules/Foo.ts --network foo --deployment-id foo)',
+          '(npx hardhat ignition status foo | tail -1 | cut -d" " -f3)'
+        ].join(' && ')
+        contract = donce(
+          home: File.join(__dir__, '../hardhat'),
+          command: "/bin/bash -c #{Shellwords.escape(cmd)}",
+          build_args: { 'HOST' => donce_host, 'PORT' => port },
+          log: fake_loog,
+          root: true
+        ).split("\n").last
+        wallet = ERC20::Wallet.new(
+          contract:, chain: 4242,
+          host: 'localhost', port:, http_path: '/', ws_path: '/', ssl: false,
+          log: fake_loog
+        )
+        yield wallet
+      end
+    end
   end
 end
