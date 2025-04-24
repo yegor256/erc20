@@ -414,7 +414,6 @@ class ERC20::Wallet
       safe do
         verbose do
           log_it(:debug, "Disconnected ##{subscription_id} from #{log_url}")
-          sleep(delay)
           active.clear
           timer&.cancel
           reaccept(addresses, active, raw:, delay:, subscription_id: subscription_id + 1, &)
