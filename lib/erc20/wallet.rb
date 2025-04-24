@@ -312,9 +312,11 @@ class ERC20::Wallet
     raise 'Addresses can\'t be nil' unless addresses
     raise 'Addresses must respond to .to_a()' unless addresses.respond_to?(:to_a)
     raise 'Active can\'t be nil' unless active
+    raise 'Active must respond to .to_a()' unless active.respond_to?(:to_a)
     raise 'Active must respond to .append()' unless active.respond_to?(:append)
+    raise 'Active must respond to .clear()' unless active.respond_to?(:clear)
     raise 'Delay must be an Integer' unless delay.is_a?(Integer)
-    raise 'Delay must be a positive Integer' unless delay.positive?
+    raise 'Delay must be a positive Integer or positive Float' unless delay.positive?
     raise 'Subscription ID must be an Integer' unless subscription_id.is_a?(Integer)
     raise 'Subscription ID must be a positive Integer' unless subscription_id.positive?
     EventMachine.run do
