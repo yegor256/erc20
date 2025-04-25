@@ -7,7 +7,6 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'backtrace', '>0', require: false
-gem 'concurrent-ruby', '~>1.2', require: false
 gem 'cucumber', '~>9.2', require: false
 gem 'donce', '>0', require: false
 gem 'faraday', '>0', require: false
@@ -27,5 +26,4 @@ gem 'simplecov', '~>0.22', require: false
 gem 'simplecov-cobertura', '~>2.1', require: false
 gem 'threads', '~>0.4', require: false
 gem 'typhoeus', '>0', require: false
-gem 'webmock', '~>3.23', require: false
 gem 'yard', '~>0.9', require: false
