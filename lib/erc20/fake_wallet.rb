@@ -69,6 +69,14 @@ class ERC20::FakeWallet
     b
   end
 
+  # Get ERC20 amount (in tokens) that was sent in the given transaction.
+  #
+  # @param [String] txn Hex of transaction
+  # @return [Integer] Balance, in ERC20 tokens
+  def sum_of(_txn)
+    42_000_000
+  end
+
   # How much gas units is required in order to send ERC20 transaction.
   #
   # @param [String] from The departing address, in hex

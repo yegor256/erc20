@@ -68,6 +68,11 @@ class TestFakeWallet < ERC20::Test
     assert_equal(b, w.eth_balance(a))
   end
 
+  def test_reads_sum_of_payment
+    txn = '0xcf0598d640d4bea3367e6af28a08c54342a39156afd292a31453778e4755945d'
+    assert_predicate(ERC20::FakeWallet.new.sum_of(txn), :positive?)
+  end
+
   def test_returns_host
     assert_equal('example.com', ERC20::FakeWallet.new.host)
   end

@@ -103,6 +103,15 @@ class TestWallet < ERC20::Test
     end
   end
 
+  def test_reads_payment_amount_on_hardhat
+    WebMock.enable_net_connect!
+    on_hardhat do |wallet|
+      sum = 33_330
+      txn = wallet.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, sum)
+      assert_equal(sum, wallet.sum_of(txn))
+    end
+  end
+
   def test_eth_pays_on_hardhat
     WebMock.enable_net_connect!
     on_hardhat do |wallet|

@@ -142,6 +142,28 @@ class ERC20::Wallet
     b
   end
 
+  # Get ERC20 amount (in tokens) that was sent in the given transaction.
+  #
+  # @param [String] txn Hex of transaction
+  # @return [Integer] Balance, in ERC20 tokens
+  def sum_of(txn)
+    raise 'Transaction hash can\'t be nil' unless txn
+    raise 'Transaction hash must be a String' unless txn.is_a?(String)
+    raise 'Invalid format of the transaction hash' unless /^0x[0-9a-fA-F]{64}$/.match?(txn)
+    receipt = jsonrpc.eth_getTransactionReceipt(txn)
+    raise "Transaction not found: #{txn}" if receipt.nil?
+    logs = receipt['logs'] || []
+    transfer_event = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+    logs.each do |log|
+      next unless log['topics'] && log['topics'][0] == transfer_event
+      next unless log['address'].downcase == @contract.downcase
+      amount = log['data'].to_i(16)
+      log_it(:debug, "Found transfer of #{amount} tokens in transaction #{txn}")
+      return amount
+    end
+    raise "No transfer event found in transaction #{txn}"
+  end
+
   # How many gas units are required to send an ERC20 transaction.
   #
   # @param [String] from The sending address, in hex
