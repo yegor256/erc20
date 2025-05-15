@@ -14,14 +14,12 @@ RUN npm install
 ARG PORT=8080
 ARG HOST=localhost
 COPY hardhat.config.js .
-RUN sed -i "s/PORT/$PORT/g" hardhat.config.js
-RUN sed -i "s/HOST/$HOST/g" hardhat.config.js
+RUN sed -i "s/PORT/$PORT/g" hardhat.config.js \
+  && sed -i "s/HOST/$HOST/g" hardhat.config.js
 
 COPY contracts contracts
 COPY ignition ignition
 
-RUN rm -rf ignition/deployments
-
-RUN npx hardhat compile
-
-RUN rm -rf cache
+RUN rm -rf ignition/deployments \
+  && npx hardhat compile \
+  && rm -rf cache
