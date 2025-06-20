@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
     'Ethereum node to provide JSON RPC and Websockets API.'
   s.authors = ['Yegor Bugayenko']
   s.email = 'yegor256@gmail.com'
-  s.homepage = 'http://github.com/yegor256/erc20.rb'
+  s.homepage = 'https://github.com/yegor256/erc20.rb'
   s.files = `git ls-files`.split($RS)
   s.rdoc_options = ['--charset=UTF-8']
   s.executables = s.files.grep(%r{^bin/}) { |f| File.basename(f) }
