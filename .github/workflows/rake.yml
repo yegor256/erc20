@@ -22,7 +22,7 @@ jobs:
       GETBLOCK_KEY: ${{ secrets.GETBLOCK_KEY }}
       GETBLOCK_SEPOILA_KEY: ${{ secrets.GETBLOCK_SEPOILA_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: |
           sudo apt-get update --yes --fix-missing
           sudo apt-get install --yes autoconf
