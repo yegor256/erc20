@@ -130,7 +130,7 @@ class ERC20::Wallet
   # An address in Ethereum may have many balances. One of them is the main
   # balance in ETH crypto. This balance is checked by this method.
   #
-  # @param [String] hex Public key, in hex, starting from '0x'
+  # @param [String] address Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in ETH
   def eth_balance(address)
     raise 'Address can\'t be nil' unless address

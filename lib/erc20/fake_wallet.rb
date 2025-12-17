@@ -71,7 +71,7 @@ class ERC20::FakeWallet
 
   # Get ERC20 amount (in tokens) that was sent in the given transaction.
   #
-  # @param [String] txn Hex of transaction
+  # @param [String] _txn Hex of transaction
   # @return [Integer] Balance, in ERC20 tokens
   def sum_of(_txn)
     42_000_000
