@@ -358,7 +358,7 @@ class ERC20::Wallet
     u = url(http: false)
     log_it(:debug, "Connecting ##{subscription_id} to #{u.hostname}:#{u.port}...")
     contract = @contract
-    log_url = "ws#{@ssl ? 's' : ''}://#{u.hostname}:#{u.port}"
+    log_url = "ws#{'s' if @ssl}://#{u.hostname}:#{u.port}"
     ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {}, ping: 60)
     timer = nil
     ws.on(:open) do
@@ -471,7 +471,7 @@ class ERC20::Wallet
   end
 
   def url(http: true)
-    URI.parse("#{http ? 'http' : 'ws'}#{@ssl ? 's' : ''}://#{@host}:#{@port}#{http ? @http_path : @ws_path}")
+    URI.parse("#{http ? 'http' : 'ws'}#{'s' if @ssl}://#{@host}:#{@port}#{http ? @http_path : @ws_path}")
   end
 
   def jsonrpc
