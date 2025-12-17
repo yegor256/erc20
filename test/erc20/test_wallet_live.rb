@@ -101,6 +101,13 @@ class TestWalletLive < ERC20::Test
     refute(failed)
   end
 
+  def test_pings_google_via_proxy
+    WebMock.enable_net_connect!
+    via_proxy do |proxy|
+      assert_equal(204, Typhoeus::Request.get('https://www.google.com/generate_204', proxy:).code)
+    end
+  end
+
   def test_checks_balance_via_proxy_on_mainnet
     WebMock.enable_net_connect!
     via_proxy do |proxy|

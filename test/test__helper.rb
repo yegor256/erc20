@@ -149,7 +149,14 @@ class ERC20::Test < Minitest::Test
         env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' },
         root: true, log: fake_loog
       ) do
-        yield "http://jeffrey:swordfish@localhost:#{port}"
+        proxy = "http://jeffrey:swordfish@localhost:#{port}"
+        wait_for do
+          Typhoeus::Request.get(
+            'https://www.google.com/generate_204',
+            proxy:, timeout: 5
+          ).code == 204
+        end
+        yield proxy
       end
     end
   end
