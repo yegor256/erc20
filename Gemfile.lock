@@ -110,7 +110,7 @@ GEM
       builder
       minitest (>= 5.0)
       ruby-progressbar
-    minitest-retry (0.2.5)
+    minitest-retry (0.3.0)
       minitest (>= 5.0)
     multi_json (1.18.0)
     multi_test (1.1.0)
@@ -123,7 +123,7 @@ GEM
       ast (~> 2.4.1)
       racc
     pkg-config (1.6.5)
-    prism (1.6.0)
+    prism (1.7.0)
     psych (5.3.1)
       date
       stringio
