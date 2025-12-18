@@ -119,10 +119,13 @@ Options are:"
     raise 'Amount argument is required (for example, "19.9usdt" or "$19.9")' if amount.nil?
     if /^[0-9]+$/.match?(amount)
       amount = amount.to_i
+      log.debug("The token amount equals to #{amount} ERC20 tokens (as provided)")
     elsif /^[0-9]+(\.[0-9]+)?usdt$/.match?(amount)
       amount = (amount.gsub(/usdt$/, '').to_f * 1_000_000).to_i
+      log.debug("The USDT amount equals to #{amount} ERC20 tokens")
     elsif /^\$[0-9]+(\.[0-9]+)?$/.match?(amount)
       amount = (amount.gsub(/^\$/, '').to_f * 1_000_000).to_i
+      log.debug("The dollar amount equals to #{amount} ERC20 tokens")
     else
       raise "Can't understand amount: #{amount.inspect}"
     end
