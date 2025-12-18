@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 Yegor Bugayenko
 # SPDX-License-Identifier: MIT
 
+require 'elapsed'
 require 'eth'
 require 'eventmachine'
 require 'faye/websocket'
@@ -508,8 +509,12 @@ class ERC20::Wallet
           }
         end
     end
-    log_it(:debug, "Talking to #{url.host}:#{url.port}...")
-    yield JSONRPC::Client.new(url.to_s, opts)
+    elapsed(@log, good: "Talked to #{url.host}:#{url.port}") do
+      yield JSONRPC::Client.new(url.to_s, opts)
+    rescue JSONRPC::Error::ServerError => e
+      p e
+      raise e
+    end
   end
 
   def to_pay_data(address, amount)

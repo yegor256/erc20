@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     erc20 (0.0.0)
+      elapsed (~> 0.2)
       eth (~> 0.5)
       faye-websocket (~> 0.11)
       json (~> 2.10)
@@ -56,7 +57,7 @@ GEM
       backtrace (~> 0.3)
       os (~> 1.1)
       qbash (~> 0.3)
-    elapsed (0.2.0)
+    elapsed (0.2.1)
       loog (~> 0.6)
       tago (~> 0.1)
     erb (6.0.1)

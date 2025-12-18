@@ -25,6 +25,7 @@ Gem::Specification.new do |s|
   s.rdoc_options = ['--charset=UTF-8']
   s.executables = s.files.grep(%r{^bin/}) { |f| File.basename(f) }
   s.extra_rdoc_files = ['README.md', 'LICENSE.txt']
+  s.add_dependency 'elapsed', '~>0.2'
   s.add_dependency 'eth', '~>0.5'
   s.add_dependency 'faye-websocket', '~>0.11'
   s.add_dependency 'json', '~>2.10'
