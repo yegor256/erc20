@@ -103,7 +103,8 @@ GEM
     memoist3 (1.0.0)
     mini_mime (1.1.5)
     mini_portile2 (2.8.9)
-    minitest (5.27.0)
+    minitest (6.0.0)
+      prism (~> 1.5)
     minitest-reporters (1.7.1)
       ansi
       builder
@@ -229,7 +230,7 @@ DEPENDENCIES
   erc20!
   faraday (~> 2.14)
   loog (~> 0.6)
-  minitest (~> 5.25)
+  minitest (~> 6.0)
   minitest-reporters (~> 1.7)
   minitest-retry (~> 0.2)
   qbash (~> 0.4)
