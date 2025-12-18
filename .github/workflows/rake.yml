@@ -27,7 +27,9 @@ jobs:
           sudo apt-get update --yes --fix-missing
           sudo apt-get install --yes autoconf
         if: matrix.os == 'ubuntu-24.04'
-      - run: brew install automake
+      - run: brew install automake libtool
+        if: matrix.os == 'macos-15'
+      - uses: docker/setup-docker-action@v4
         if: matrix.os == 'macos-15'
       - uses: ruby/setup-ruby@v1
         with:

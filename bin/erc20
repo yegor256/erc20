@@ -116,12 +116,15 @@ Options are:"
     raise 'Address is required' if address.nil?
     log.debug("Sending ERC20 tokens to #{address}")
     amount = opts.arguments[3]
-    raise 'Amount argument is required (for example, "19.9usdt")' if amount.nil?
-    raise 'Amount is not valid' unless /^[0-9]+(usdt)?$/.match?(amount)
+    raise 'Amount argument is required (for example, "19.9usdt" or "$19.9")' if amount.nil?
     if /^[0-9]+$/.match?(amount)
       amount = amount.to_i
-    elsif /^[0-9]usdt+$/.match?(amount)
-      amount = (amount.gsub(/usdt^/, '').to_f * 1_000_000).to_i
+    elsif /^[0-9]+(\.[0-9]+)?usdt$/.match?(amount)
+      amount = (amount.gsub(/usdt$/, '').to_f * 1_000_000).to_i
+    elsif /^\$[0-9]+(\.[0-9]+)?$/.match?(amount)
+      amount = (amount.gsub(/^\$/, '').to_f * 1_000_000).to_i
+    else
+      raise "Can't understand amount: #{amount.inspect}"
     end
     log.debug("Sending #{amount} ERC20 tokens")
     puts wallet.pay(priv.private_hex, address, amount)
