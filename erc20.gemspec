@@ -8,7 +8,7 @@ require_relative 'lib/erc20/erc20'
 
 Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new('>= 0') if s.respond_to? :required_rubygems_version=
-  s.required_ruby_version = '>=3.0'
+  s.required_ruby_version = '~>3.0'
   s.name = 'erc20'
   s.version = ERC20::VERSION
   s.license = 'MIT'
@@ -25,11 +25,11 @@ Gem::Specification.new do |s|
   s.rdoc_options = ['--charset=UTF-8']
   s.executables = s.files.grep(%r{^bin/}) { |f| File.basename(f) }
   s.extra_rdoc_files = ['README.md', 'LICENSE.txt']
-  s.add_dependency 'eth', '>=0.5.13'
-  s.add_dependency 'faye-websocket', '>=0.11.3'
-  s.add_dependency 'json', '>=2.10.1'
-  s.add_dependency 'jsonrpc-client', '>=0.1.4'
-  s.add_dependency 'loog', '>0'
-  s.add_dependency 'slop', '>4'
+  s.add_dependency 'eth', '~>0.5'
+  s.add_dependency 'faye-websocket', '~>0.11'
+  s.add_dependency 'json', '~>2.10'
+  s.add_dependency 'jsonrpc-client', '~>0.1'
+  s.add_dependency 'loog', '~>0.4'
+  s.add_dependency 'slop', '~>4.0'
   s.metadata['rubygems_mfa_required'] = 'true'
 end
