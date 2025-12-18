@@ -36,6 +36,11 @@ Options are:"
         'Ethereum chain ID',
         default: 1
       )
+      o.bool(
+        '--ssl',
+        'Use SSL for HTTP connections',
+        default: true
+      )
       o.string(
         '--host',
         'Host name of the provider',
@@ -88,6 +93,7 @@ Options are:"
         contract: opts[:contract],
         host: opts[:host], port: opts[:port].to_i,
         http_path: opts[:http_path], ws_path: opts[:ws_path],
+        ssl: opts[:ssl],
         log:
       )
     end
