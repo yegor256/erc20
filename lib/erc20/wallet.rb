@@ -119,7 +119,10 @@ class ERC20::Wallet
     raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(address)
     func = '70a08231' # balanceOf
     data = "0x#{func}000000000000000000000000#{address[2..].downcase}"
-    r = jsonrpc.eth_call({ to: @contract, data: data }, 'latest')
+    r =
+      with_jsonrpc do |jr|
+        jr.eth_call({ to: @contract, data: data }, 'latest')
+      end
     b = r[2..].to_i(16)
     log_it(:debug, "The balance of #{address} is #{b} ERC20 tokens")
     b
@@ -136,7 +139,10 @@ class ERC20::Wallet
     raise 'Address can\'t be nil' unless address
     raise 'Address must be a String' unless address.is_a?(String)
     raise 'Invalid format of the address' unless /^0x[0-9a-fA-F]{40}$/.match?(address)
-    r = jsonrpc.eth_getBalance(address, 'latest')
+    r =
+      with_jsonrpc do |jr|
+        jr.eth_getBalance(address, 'latest')
+      end
     b = r[2..].to_i(16)
     log_it(:debug, "The balance of #{address} is #{b} ETHs")
     b
@@ -150,7 +156,10 @@ class ERC20::Wallet
     raise 'Transaction hash can\'t be nil' unless txn
     raise 'Transaction hash must be a String' unless txn.is_a?(String)
     raise 'Invalid format of the transaction hash' unless /^0x[0-9a-fA-F]{64}$/.match?(txn)
-    receipt = jsonrpc.eth_getTransactionReceipt(txn)
+    receipt =
+      with_jsonrpc do |jr|
+        jr.eth_getTransactionReceipt(txn)
+      end
     raise "Transaction not found: #{txn}" if receipt.nil?
     logs = receipt['logs'] || []
     transfer_event = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
@@ -180,7 +189,10 @@ class ERC20::Wallet
     raise 'Amount can\'t be nil' unless amount
     raise "Amount (#{amount}) must be an Integer" unless amount.is_a?(Integer)
     raise "Amount (#{amount}) must be a positive Integer" unless amount.positive?
-    gas = jsonrpc.eth_estimateGas({ from:, to: @contract, data: to_pay_data(to, amount) }, 'latest').to_i(16)
+    gas =
+      with_jsonrpc do |jr|
+        jr.eth_estimateGas({ from:, to: @contract, data: to_pay_data(to, amount) }, 'latest').to_i(16)
+      end
     log_it(:debug, "It would take #{gas} gas units to send #{amount} tokens from #{from} to #{to}")
     gas
   end
@@ -196,7 +208,10 @@ class ERC20::Wallet
   #
   # @return [Integer] Price of gas unit, in gwei (0.000000001 ETH)
   def gas_price
-    block = jsonrpc.eth_getBlockByNumber('latest', false)
+    block =
+      with_jsonrpc do |jr|
+        jr.eth_getBlockByNumber('latest', false)
+      end
     raise "Can't get gas price, try again later" if block.nil?
     gwei = block['baseFeePerGas'].to_i(16)
     log_it(:debug, "The cost of one gas unit is #{gwei} gwei")
@@ -241,21 +256,23 @@ class ERC20::Wallet
     from = key.address.to_s
     tnx =
       @mutex.synchronize do
-        nonce = jsonrpc.eth_getTransactionCount(from, 'pending').to_i(16)
-        h = {
-          nonce:,
-          gas_price: price,
-          gas_limit: limit || gas_estimate(from, address, amount),
-          to: @contract,
-          value: 0,
-          data: to_pay_data(address, amount),
-          chain_id: @chain
-        }
-        tx = Eth::Tx.new(h)
-        tx.sign(key)
-        hex = "0x#{tx.hex}"
-        log_it(:debug, "Sending ERC20 transaction #{hex}: #{h.to_json}")
-        jsonrpc.eth_sendRawTransaction(hex)
+        with_jsonrpc do |jr|
+          nonce = jr.eth_getTransactionCount(from, 'pending').to_i(16)
+          h = {
+            nonce:,
+            gas_price: price,
+            gas_limit: limit || gas_estimate(from, address, amount),
+            to: @contract,
+            value: 0,
+            data: to_pay_data(address, amount),
+            chain_id: @chain
+          }
+          tx = Eth::Tx.new(h)
+          tx.sign(key)
+          hex = "0x#{tx.hex}"
+          log_it(:debug, "Sending ERC20 transaction #{hex}: #{h.to_json}")
+          jr.eth_sendRawTransaction(hex)
+        end
       end
     log_it(:debug, "Sent #{amount} ERC20 tokens from #{from} to #{address}: #{tnx}")
     tnx.downcase
@@ -286,20 +303,22 @@ class ERC20::Wallet
     from = key.address.to_s
     tnx =
       @mutex.synchronize do
-        nonce = jsonrpc.eth_getTransactionCount(from, 'pending').to_i(16)
-        h = {
-          chain_id: @chain,
-          nonce:,
-          gas_price: price,
-          gas_limit: 22_000,
-          to: address,
-          value: amount
-        }
-        tx = Eth::Tx.new(h)
-        tx.sign(key)
-        hex = "0x#{tx.hex}"
-        log_it(:debug, "Sending ETH transaction #{hex}: #{h.to_json}")
-        jsonrpc.eth_sendRawTransaction(hex)
+        with_jsonrpc do |jr|
+          nonce = jr.eth_getTransactionCount(from, 'pending').to_i(16)
+          h = {
+            chain_id: @chain,
+            nonce:,
+            gas_price: price,
+            gas_limit: 22_000,
+            to: address,
+            value: amount
+          }
+          tx = Eth::Tx.new(h)
+          tx.sign(key)
+          hex = "0x#{tx.hex}"
+          log_it(:debug, "Sending ETH transaction #{hex}: #{h.to_json}")
+          jr.eth_sendRawTransaction(hex)
+        end
       end
     log_it(:debug, "Sent #{amount} ETHs from #{from} to #{address}: #{tnx}")
     tnx.downcase
@@ -474,7 +493,7 @@ class ERC20::Wallet
     URI.parse("#{http ? 'http' : 'ws'}#{'s' if @ssl}://#{@host}:#{@port}#{http ? @http_path : @ws_path}")
   end
 
-  def jsonrpc
+  def with_jsonrpc
     JSONRPC.logger = Loog::NULL
     opts = {}
     if @proxy
@@ -490,7 +509,7 @@ class ERC20::Wallet
         end
     end
     log_it(:debug, "Talking to #{url.host}:#{url.port}...")
-    JSONRPC::Client.new(url.to_s, opts)
+    yield JSONRPC::Client.new(url.to_s, opts)
   end
 
   def to_pay_data(address, amount)
