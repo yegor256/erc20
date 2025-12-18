@@ -242,19 +242,19 @@ class ERC20::Wallet
     tnx =
       @mutex.synchronize do
         nonce = jsonrpc.eth_getTransactionCount(from, 'pending').to_i(16)
-        tx = Eth::Tx.new(
-          {
-            nonce:,
-            gas_price: price,
-            gas_limit: limit || gas_estimate(from, address, amount),
-            to: @contract,
-            value: 0,
-            data: to_pay_data(address, amount),
-            chain_id: @chain
-          }
-        )
+        h = {
+          nonce:,
+          gas_price: price,
+          gas_limit: limit || gas_estimate(from, address, amount),
+          to: @contract,
+          value: 0,
+          data: to_pay_data(address, amount),
+          chain_id: @chain
+        }
+        tx = Eth::Tx.new(h)
         tx.sign(key)
         hex = "0x#{tx.hex}"
+        log_it(:debug, "Sending ERC20 transaction #{hex}: #{h.to_json}")
         jsonrpc.eth_sendRawTransaction(hex)
       end
     log_it(:debug, "Sent #{amount} ERC20 tokens from #{from} to #{address}: #{tnx}")
@@ -287,18 +287,18 @@ class ERC20::Wallet
     tnx =
       @mutex.synchronize do
         nonce = jsonrpc.eth_getTransactionCount(from, 'pending').to_i(16)
-        tx = Eth::Tx.new(
-          {
-            chain_id: @chain,
-            nonce:,
-            gas_price: price,
-            gas_limit: 22_000,
-            to: address,
-            value: amount
-          }
-        )
+        h = {
+          chain_id: @chain,
+          nonce:,
+          gas_price: price,
+          gas_limit: 22_000,
+          to: address,
+          value: amount
+        }
+        tx = Eth::Tx.new(h)
         tx.sign(key)
         hex = "0x#{tx.hex}"
+        log_it(:debug, "Sending ETH transaction #{hex}: #{h.to_json}")
         jsonrpc.eth_sendRawTransaction(hex)
       end
     log_it(:debug, "Sent #{amount} ETHs from #{from} to #{address}: #{tnx}")
