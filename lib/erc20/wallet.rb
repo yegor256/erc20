@@ -271,7 +271,7 @@ class ERC20::Wallet
           tx = Eth::Tx.new(h)
           tx.sign(key)
           hex = "0x#{tx.hex}"
-          log_it(:debug, "Sending ERC20 transaction #{hex}: #{h.to_json}")
+          log_it(:debug, "Sending ERC20 transaction #{hex}")
           jr.eth_sendRawTransaction(hex)
         end
       end
@@ -317,7 +317,7 @@ class ERC20::Wallet
           tx = Eth::Tx.new(h)
           tx.sign(key)
           hex = "0x#{tx.hex}"
-          log_it(:debug, "Sending ETH transaction #{hex}: #{h.to_json}")
+          log_it(:debug, "Sending ETH transaction #{hex}")
           jr.eth_sendRawTransaction(hex)
         end
       end

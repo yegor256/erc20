@@ -141,6 +141,9 @@ Options are:"
       raise "Can't understand amount: #{amount.inspect}"
     end
     log.debug("Sending #{amount} ERC20 tokens")
+    if wallet.eth_balance(priv.address.to_s).zero?
+      log.debug("ETH balance of #{priv.address} is zero, the txn most definitely will be rejected by the server!")
+    end
     puts wallet.pay(priv.private_hex, address, amount)
   when 'eth_pay'
     pkey = opts.arguments[1]
