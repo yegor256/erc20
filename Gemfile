@@ -12,7 +12,7 @@ gem 'cucumber', '~>9.2', require: false
 gem 'donce', '~>0.2', require: false
 gem 'faraday', '~>2.14', require: false
 gem 'loog', '~>0.6', require: false
-gem 'minitest', '~>5.25', require: false
+gem 'minitest', '~>6.0', require: false
 gem 'minitest-reporters', '~>1.7', require: false
 gem 'minitest-retry', '~>0.2', require: false
 gem 'qbash', '~>0.4', require: false
