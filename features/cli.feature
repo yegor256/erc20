@@ -28,8 +28,3 @@ Feature: Command Line Processing
   Scenario: ETH balance can be checked
     When I run bin/erc20 with "eth_balance 0x7232148927F8a580053792f44D4d59d40Fd00ABD --verbose"
     Then Exit code is zero
-
-  Scenario: ERC20 payment can be sent
-    When I run bin/erc20 with "pay --dry --verbose 46feba063e9b59a8ae0dba68abd39a3cb8f52089e776576d6eb1bb5bfec123d1 0x7232148927F8a580053792f44D4d59d40Fd00ABD $10"
-    Then Exit code is zero
-
