@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 Yegor Bugayenko
 # SPDX-License-Identifier: MIT
 
-FROM node:22
+FROM node:24
 
 ENV HOME=/hh
 WORKDIR /app
