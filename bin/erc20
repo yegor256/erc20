@@ -86,7 +86,7 @@ Options are:"
     else
       ERC20::Wallet.new(
         contract: opts[:contract],
-        host: opts[:host], port: opts[:port],
+        host: opts[:host], port: opts[:port].to_i,
         http_path: opts[:http_path], ws_path: opts[:ws_path],
         log:
       )
