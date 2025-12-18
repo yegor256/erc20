@@ -489,6 +489,7 @@ class ERC20::Wallet
           }
         end
     end
+    log_it(:debug, "Talking to #{url.host}:#{url.port}...")
     JSONRPC::Client.new(url.to_s, opts)
   end
 

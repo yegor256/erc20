@@ -80,12 +80,17 @@ Options are:"
   end
   raise 'Try --help' if opts.arguments.empty?
   log = opts[:verbose] ? Loog::VERBOSE : Loog::REGULAR
-  wallet = ERC20::Wallet.new(
-    contract: opts[:contract],
-    host: opts[:host], port: opts[:port],
-    http_path: opts[:http_path], ws_path: opts[:ws_path],
-    log:
-  )
+  wallet =
+    if opts[:dry]
+      ERC20::FakeWallet.new
+    else
+      ERC20::Wallet.new(
+        contract: opts[:contract],
+        host: opts[:host], port: opts[:port],
+        http_path: opts[:http_path], ws_path: opts[:ws_path],
+        log:
+      )
+    end
   case opts.arguments[0]
   when 'key'
     puts Eth::Key.new.private_hex
