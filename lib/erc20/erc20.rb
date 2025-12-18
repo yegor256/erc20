@@ -25,5 +25,5 @@
 # License:: MIT
 module ERC20
   # Current version of the gem (changed by the +.rultor.yml+ on every release)
-  VERSION = '0.0.0'
+  VERSION = '0.2.4'
 end
