@@ -102,12 +102,12 @@ class ERC20::FakeWallet
   # @param [String] priv Private key, in hex
   # @param [String] address Public key, in hex
   # @param [Integer] amount The amount of ERC20 tokens to send
-  # @param [Integer] gas_limit Optional gas limit
-  # @param [Integer] gas_price Optional gas price in gwei
+  # @param [Integer] limit Optional gas limit
+  # @param [Integer] price Optional gas price in gwei
   # @return [String] Transaction hash
-  def pay(priv, address, amount, gas_limit: nil, gas_price: nil)
+  def pay(priv, address, amount, limit: nil, price: nil)
     hex = TXN_HASH
-    @history << { method: :pay, priv:, address:, amount:, gas_limit:, gas_price:, result: hex }
+    @history << { method: :pay, priv:, address:, amount:, limit:, price:, result: hex }
     hex
   end
 
@@ -116,11 +116,11 @@ class ERC20::FakeWallet
   # @param [String] priv Private key, in hex
   # @param [String] address Public key, in hex
   # @param [Integer] amount The amount of ETHs to send
-  # @param [Integer] gas_price Optional gas price in gwei
+  # @param [Integer] price Optional gas price in gwei
   # @return [String] Transaction hash
-  def eth_pay(priv, address, amount, gas_price: nil)
+  def eth_pay(priv, address, amount, price: nil)
     hex = TXN_HASH
-    @history << { method: :eth_pay, priv:, address:, amount:, gas_price:, result: hex }
+    @history << { method: :eth_pay, priv:, address:, amount:, price:, result: hex }
     hex
   end
 

@@ -82,11 +82,11 @@ class TestFakeWallet < ERC20::Test
     address = '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'
     w = ERC20::FakeWallet.new
     amount = 555_000
-    txn = w.pay(priv, address, amount)
+    txn = w.pay(priv, address, amount, limit: 999, price: 777)
     assert_equal(66, txn.length)
     assert_match(/^0x[a-f0-9]{64}$/, txn)
     assert_equal(ERC20::FakeWallet::TXN_HASH, txn)
-    assert_includes(w.history, { method: :pay, result: txn, priv:, address:, amount:, gas_limit: nil, gas_price: nil })
+    assert_includes(w.history, { method: :pay, result: txn, priv:, address:, amount:, limit: 999, price: 777 })
   end
 
   def test_pays_fake_eths
