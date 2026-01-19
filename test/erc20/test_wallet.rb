@@ -48,4 +48,20 @@ class TestWallet < ERC20::Test
     refute_nil(b)
     assert_predicate(b, :zero?)
   end
+
+  def test_rejects_gas_limit_below_minimum
+    WebMock.disable_net_connect!
+    w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
+    assert_raises(RuntimeError) do
+      w.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000, limit: 20_999, price: 1000)
+    end
+  end
+
+  def test_rejects_gas_limit_above_maximum
+    WebMock.disable_net_connect!
+    w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
+    assert_raises(RuntimeError) do
+      w.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000, limit: 30_000_001, price: 1000)
+    end
+  end
 end

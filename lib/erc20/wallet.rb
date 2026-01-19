@@ -247,7 +247,8 @@ class ERC20::Wallet
     raise "Amount (#{amount}) must be a positive Integer" unless amount.positive?
     if limit
       raise 'Gas limit must be an Integer' unless limit.is_a?(Integer)
-      raise 'Gas limit must be a positive Integer' unless limit.positive?
+      raise "Gas limit #{limit} is below #{Eth::Tx::DEFAULT_GAS_LIMIT}" if limit < Eth::Tx::DEFAULT_GAS_LIMIT
+      raise "Gas limit #{limit} is above #{Eth::Tx::BLOCK_GAS_LIMIT}" if limit > Eth::Tx::BLOCK_GAS_LIMIT
     end
     if price
       raise 'Gas price must be an Integer' unless price.is_a?(Integer)
