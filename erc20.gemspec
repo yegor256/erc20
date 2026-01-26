@@ -31,6 +31,6 @@ Gem::Specification.new do |s|
   s.add_dependency 'json', '~>2.10'
   s.add_dependency 'jsonrpc-client', '~>0.1'
   s.add_dependency 'loog', '~>0.4'
-  s.add_dependency 'slop', '~>4.0'
+  s.add_dependency 'thor', '~>1.3'
   s.metadata['rubygems_mfa_required'] = 'true'
 end

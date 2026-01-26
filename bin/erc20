@@ -8,123 +8,135 @@ $stdout.sync = true
 
 require 'backtrace'
 require 'loog'
-require 'slop'
+require 'thor'
 require_relative '../lib/erc20'
 require_relative '../lib/erc20/erc20'
 require_relative '../lib/erc20/wallet'
 
-log = ARGV.include?('--verbose') ? Loog::VERBOSE : Loog::REGULAR
-
-begin
-  opts = Slop.parse(ARGV, strict: true, help: true) do |o|
-    o.banner = "Usage (#{ERC20::VERSION}): erc20 [options] command [args]
-Commands are:
-    key:         Generate a new Ethereum private key (64 symbols)
-    address:     Turn private key into a public address (44 symbols)
-    price:       Get current price of one gas unit, in gwei
-    pay:         Send ERC20 payment
-    eth_pay:     Send ETH payment
-    balance:     Get ERC20 balance
-    eth_balance: Get ETH balance
-Options are:"
-    o.string(
-      '--contract',
-      'Public address of ERC20 contract',
-      default: ERC20::Wallet::USDT
-    )
-    o.integer(
-      '--chain',
-      'Ethereum chain ID',
-      default: 1
-    )
-    o.bool(
-      '--ssl',
-      'Use SSL for HTTP connections',
-      default: true
-    )
-    o.string(
-      '--host',
-      'Host name of the provider',
-      default: 'eth.llamarpc.com'
-    )
-    o.string(
-      '--port',
-      'TCP port of the provider',
-      default: 443
-    )
-    o.string(
-      '--http_path',
-      'URL path for the HTTP RPC entry point of the provider',
-      default: '/'
-    )
-    o.string(
-      '--ws_path',
-      'URL path for the Websockets entry point of the provider',
-      default: '/'
-    )
-    o.string(
-      '--proxy',
-      'HTTP/S proxy for all requests, e.g. "localhost:3128"'
-    )
-    o.integer(
-      '--attempts',
-      'How many times should we try before failing',
-      default: 1
-    )
-    o.bool(
-      '--dry',
-      'Don\'t send a real payment, run in a read-only mode'
-    )
-    o.bool('--help', 'Read this: https://github.com/yegor256/erc20') do
-      log.info(o)
-      exit
-    end
-    o.bool('--verbose', 'Print all possible debug messages')
+# Command line interface for ERC20 operations.
+#
+# This CLI provides commands for managing ERC20 tokens and ETH on Ethereum:
+# generating keys, checking balances, and sending payments.
+#
+# Author:: Yegor Bugayenko (yegor256@gmail.com)
+# Copyright:: Copyright (c) 2025 Yegor Bugayenko
+# License:: MIT
+class Bin < Thor
+  def self.exit_on_failure?
+    true
   end
-  raise 'Try --help' if opts.arguments.empty?
-  wallet =
-    if opts[:dry]
-      ERC20::FakeWallet.new
-    else
-      ERC20::Wallet.new(
-        contract: opts[:contract],
-        host: opts[:host], port: opts[:port].to_i,
-        http_path: opts[:http_path], ws_path: opts[:ws_path],
-        ssl: opts[:ssl],
-        log:
-      )
-    end
-  case opts.arguments[0]
-  when 'key'
+
+  class_option :contract, type: :string, default: ERC20::Wallet::USDT,
+    desc: 'Public address of ERC20 contract'
+  class_option :chain, type: :numeric, default: 1,
+    desc: 'Ethereum chain ID'
+  class_option :ssl, type: :boolean, default: true,
+    desc: 'Use SSL for HTTP connections'
+  class_option :host, type: :string, default: 'eth.llamarpc.com',
+    desc: 'Host name of the provider'
+  class_option :port, type: :numeric, default: 443,
+    desc: 'TCP port of the provider'
+  class_option :http_path, type: :string, default: '/',
+    desc: 'URL path for the HTTP RPC entry point of the provider'
+  class_option :ws_path, type: :string, default: '/',
+    desc: 'URL path for the Websockets entry point of the provider'
+  class_option :proxy, type: :string,
+    desc: 'HTTP/S proxy for all requests, e.g. "localhost:3128"'
+  class_option :attempts, type: :numeric, default: 1,
+    desc: 'How many times should we try before failing'
+  class_option :dry, type: :boolean, default: false,
+    desc: "Don't send a real payment, run in a read-only mode"
+  class_option :verbose, type: :boolean, default: false,
+    desc: 'Print all possible debug messages'
+
+  desc 'key', 'Generate a new Ethereum private key (64 symbols)'
+  def key
     log.info(Eth::Key.new.private_hex.downcase)
-  when 'address'
-    log.info(Eth::Key.new(priv: opts.arguments[1]).address.to_s.downcase)
-  when 'price'
+  end
+
+  desc 'address KEY', 'Turn private key into a public address (44 symbols)'
+  def address(pvt)
+    log.info(Eth::Key.new(priv: pvt).address.to_s.downcase)
+  end
+
+  desc 'price', 'Get current price of one gas unit, in gwei'
+  def price
     log.info(wallet.gas_price)
-  when 'balance'
-    address = opts.arguments[1]
-    raise 'Address is required' if address.nil?
+  end
+
+  desc 'balance ADDRESS', 'Get ERC20 balance'
+  def balance(address)
     log.debug("Checking ERC20 balance of #{address}")
     tokens = wallet.balance(address)
     log.debug("The balance is #{tokens} ERC20 tokens (#{tokens.to_f / 1_000_000} USDT)")
     log.info(tokens)
-  when 'eth_balance'
-    address = opts.arguments[1]
-    raise 'Address is required' if address.nil?
+  end
+
+  desc 'eth_balance ADDRESS', 'Get ETH balance'
+  def eth_balance(address)
     log.debug("Checking ETH balance of #{address}")
     wei = wallet.eth_balance(address)
     log.debug("The balance of #{address} is #{wei} wei (#{format('%0.4f', wei.to_f / 1_000_000_000_000_000_000)} ETH)")
     log.info(wei)
-  when 'pay'
-    pkey = opts.arguments[1]
-    raise 'Private key is required' if pkey.nil?
+  end
+
+  desc 'pay KEY ADDRESS AMOUNT', 'Send ERC20 payment'
+  def pay(pkey, address, amount)
     priv = Eth::Key.new(priv: pkey)
-    log.debug("Sending ERC20 tokens from #{priv.address.to_s}")
-    address = opts.arguments[2]
-    raise 'Address is required' if address.nil?
+    log.debug("Sending ERC20 tokens from #{priv.address}")
     log.debug("Sending ERC20 tokens to #{address}")
-    amount = opts.arguments[3]
-    raise 'Amount argument is required (for example, "19.9usdt" or "$19.9")' if amount.nil?
+    amount = tokens(amount)
+    log.debug("Sending #{amount} ERC20 tokens")
+    if wallet.eth_balance(priv.address.to_s).zero?
+      log.debug("ETH balance of #{priv.address} is zero, the txn most definitely will be rejected by the server!")
+    end
+    log.info(wallet.pay(priv.private_hex, address, amount))
+  end
+
+  desc 'eth_pay KEY ADDRESS AMOUNT', 'Send ETH payment'
+  def eth_pay(pkey, address, amount)
+    priv = Eth::Key.new(priv: pkey)
+    log.debug("Sending ETH from #{priv.address}")
+    log.debug("Sending ETH to #{address}")
+    raise "Amount #{amount.inspect} is not valid" unless /^[0-9]+(\.[0-9]+)?(eth|wei|gwei)?$/.match?(amount)
+    amount = wei(amount)
+    log.debug("Sending #{amount} wei...")
+    log.info(wallet.eth_pay(priv.private_hex, address, amount))
+  end
+
+  def self.banner(task, namespace = false, subcommand = false)
+    "#{basename} #{task.usage}"
+  end
+
+  def self.help(shell, subcommand = false)
+    shell.say "Usage (#{ERC20::VERSION}): erc20 [options] command [args]"
+    shell.say 'Commands are:'
+    super
+    shell.say "\nRead this: https://github.com/yegor256/erc20"
+  end
+
+  private
+
+  def log
+    @log ||= options[:verbose] ? Loog::VERBOSE : Loog::REGULAR
+  end
+
+  def wallet
+    @wallet ||=
+      if options[:dry]
+        ERC20::FakeWallet.new
+      else
+        ERC20::Wallet.new(
+          contract: options[:contract],
+          host: options[:host], port: options[:port].to_i,
+          http_path: options[:http_path], ws_path: options[:ws_path],
+          ssl: options[:ssl],
+          log: log
+        )
+      end
+  end
+
+  def tokens(amount)
     if /^[0-9]+$/.match?(amount)
       amount = amount.to_i
       log.debug("The token amount equals to #{amount} ERC20 tokens (as provided)")
@@ -137,39 +149,28 @@ Options are:"
     else
       raise "Can't understand amount: #{amount.inspect}"
     end
-    log.debug("Sending #{amount} ERC20 tokens")
-    if wallet.eth_balance(priv.address.to_s).zero?
-      log.debug("ETH balance of #{priv.address} is zero, the txn most definitely will be rejected by the server!")
-    end
-    log.info(wallet.pay(priv.private_hex, address, amount))
-  when 'eth_pay'
-    pkey = opts.arguments[1]
-    raise 'Private key is required' if pkey.nil?
-    priv = Eth::Key.new(priv: pkey)
-    log.debug("Sending ETH from #{priv.address.to_s}")
-    address = opts.arguments[2]
-    raise 'Address is required' if address.nil?
-    log.debug("Sending ETH to #{address}")
-    amount = opts.arguments[3]
-    raise 'Amount argument is required' if amount.nil?
-    raise "Amount #{amount.inspect} is not valid" unless /^[0-9]+(\.[0-9]+)?(eth|wei|gwei)?$/.match?(amount)
+    amount
+  end
+
+  def wei(amount)
     if /^[0-9]+$/.match?(amount)
-      amount = amount.to_i
-    elsif /[0-9]wei+$/.match?(amount)
-      amount = amount.gsub(/wei^/, '').to_i
-    elsif /[0-9]gwei+$/.match?(amount)
-      amount = (amount.gsub(/gwei^/, '').to_f * 1_000_000_000).to_i
-    elsif /[0-9]eth+$/.match?(amount)
-      amount = (amount.gsub(/eth^/, '').to_f * 1_000_000_000_000_000_000).to_i
+      amount.to_i
+    elsif /[0-9]wei$/.match?(amount)
+      amount.gsub(/wei$/, '').to_i
+    elsif /[0-9]gwei$/.match?(amount)
+      (amount.gsub(/gwei$/, '').to_f * 1_000_000_000).to_i
+    elsif /[0-9]eth$/.match?(amount)
+      (amount.gsub(/eth$/, '').to_f * 1_000_000_000_000_000_000).to_i
     else
       raise "Can't understand amount: #{amount.inspect}"
     end
-    log.debug("Sending #{amount} wei...")
-    log.info(wallet.eth_pay(priv.private_hex, address, amount))
-  else
-    raise "Command #{opts.arguments[0]} is not supported"
   end
+end
+
+begin
+  Bin.start(ARGV)
 rescue StandardError => e
+  log = ARGV.include?('--verbose') ? Loog::VERBOSE : Loog::REGULAR
   log.debug(Backtrace.new(e))
   log.error(e.message)
   exit(255)
