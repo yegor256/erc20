@@ -106,7 +106,7 @@ w = ERC20::Wallet.new(
 You can use [squid-proxy] [Docker] image to set up your own [HTTP proxy] server.
 
 Of course, this library works with [Polygon], [Optimism],
-and other EVM compatible blockchains.
+and other [EVM] compatible blockchains.
 
 ## How to use in command line
 
@@ -170,3 +170,4 @@ If it's clean and you don't see any error messages, submit your pull request.
 [Docker]: https://www.docker.com/
 [Polygon]: https://polygon.technology/
 [Optimism]: https://www.optimism.io/
+[EVM]: https://ethereum.org/developers/docs/evm/
