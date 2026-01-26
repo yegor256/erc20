@@ -122,7 +122,7 @@ gem install erc20
 Then, run it:
 
 ```bash
-erc20 --help
+erc20 help
 ```
 
 Usage should be straightforward. If you have questions, please submit an issue.

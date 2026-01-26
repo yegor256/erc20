@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: MIT
 
 require 'tmpdir'
-require 'slop'
 require 'English'
 require_relative '../../lib/erc20'
 
@@ -13,10 +12,6 @@ Before do
   @dir = Dir.mktmpdir('test')
   FileUtils.mkdir_p(@dir)
   Dir.chdir(@dir)
-  @opts =
-    Slop.parse ['-v'] do |o|
-      o.bool '-v', '--verbose'
-    end
 end
 
 After do

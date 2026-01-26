@@ -13,7 +13,7 @@ require_relative '../test__helper'
 # License:: MIT
 class TestBin < ERC20::Test
   def test_prints_help
-    stdout = qbash(bin, '--help')
+    stdout = qbash(bin, 'help')
     assert_includes(stdout, 'Commands are:', 'help does not list commands')
   end
 

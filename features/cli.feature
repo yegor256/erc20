@@ -5,9 +5,9 @@ Feature: Command Line Processing
   As a simple ETH/ERC20 user I want to send payments
 
   Scenario: Help can be printed
-    When I run bin/erc20 with "--help"
+    When I run bin/erc20 with "help"
     Then Exit code is zero
-    And Stdout contains "--help"
+    And Stdout contains "help"
 
   Scenario: Gas price price can be retrieved
     When I run bin/erc20 with "price --attempts=4"
