@@ -49,12 +49,12 @@ class Bin < Thor
   class_option :verbose, type: :boolean, default: false,
     desc: 'Print all possible debug messages'
 
-  desc 'key', 'Generate a new Ethereum private key (64 symbols)'
+  desc 'key', 'Generate a new Ethereum private key (64 hex symbols)'
   def key
     log.info(Eth::Key.new.private_hex.downcase)
   end
 
-  desc 'address KEY', 'Turn private key into a public address (44 symbols)'
+  desc 'address KEY', 'Turn private key into a public address (44 hex symbols)'
   def address(pvt)
     log.info(Eth::Key.new(priv: pvt).address.to_s.downcase)
   end
