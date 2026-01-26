@@ -99,9 +99,9 @@ Options are:"
     end
   case opts.arguments[0]
   when 'key'
-    puts Eth::Key.new.private_hex
+    puts Eth::Key.new.private_hex.downcase
   when 'address'
-    puts Eth::Key.new(priv: opts.arguments[1]).address.to_s
+    puts Eth::Key.new(priv: opts.arguments[1]).address.to_s.downcase
   when 'price'
     puts wallet.gas_price
   when 'balance'
