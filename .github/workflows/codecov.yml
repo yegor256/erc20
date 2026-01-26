@@ -11,11 +11,14 @@ jobs:
   codecov:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        ruby: [3.3]
     steps:
       - uses: actions/checkout@v6
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 4.0.1
+          ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - run: bundle config set --global path "$(pwd)/vendor/bundle"
       - run: bundle install --no-color
