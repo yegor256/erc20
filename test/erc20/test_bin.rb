@@ -27,6 +27,10 @@ class TestBin < ERC20::Test
     assert_match(/^0x[a-f0-9]{40}$/, stdout.strip)
   end
 
+  def test_wrong_command
+    qbash(bin, 'foo', accept: [255])
+  end
+
   private
 
   def bin

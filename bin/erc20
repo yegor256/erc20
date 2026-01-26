@@ -13,10 +13,11 @@ require_relative '../lib/erc20'
 require_relative '../lib/erc20/erc20'
 require_relative '../lib/erc20/wallet'
 
+log = ARGV.include?('--verbose') ? Loog::VERBOSE : Loog::REGULAR
+
 begin
-  begin
-    opts = Slop.parse(ARGV, strict: true, help: true) do |o|
-      o.banner = "Usage (#{ERC20::VERSION}): erc20 [options] command [args]
+  opts = Slop.parse(ARGV, strict: true, help: true) do |o|
+    o.banner = "Usage (#{ERC20::VERSION}): erc20 [options] command [args]
 Commands are:
     key:         Generate a new Ethereum private key (64 symbols)
     address:     Turn private key into a public address (44 symbols)
@@ -26,65 +27,61 @@ Commands are:
     balance:     Get ERC20 balance
     eth_balance: Get ETH balance
 Options are:"
-      o.string(
-        '--contract',
-        'Public address of ERC20 contract',
-        default: ERC20::Wallet::USDT
-      )
-      o.integer(
-        '--chain',
-        'Ethereum chain ID',
-        default: 1
-      )
-      o.bool(
-        '--ssl',
-        'Use SSL for HTTP connections',
-        default: true
-      )
-      o.string(
-        '--host',
-        'Host name of the provider',
-        default: 'eth.llamarpc.com'
-      )
-      o.string(
-        '--port',
-        'TCP port of the provider',
-        default: 443
-      )
-      o.string(
-        '--http_path',
-        'URL path for the HTTP RPC entry point of the provider',
-        default: '/'
-      )
-      o.string(
-        '--ws_path',
-        'URL path for the Websockets entry point of the provider',
-        default: '/'
-      )
-      o.string(
-        '--proxy',
-        'HTTP/S proxy for all requests, e.g. "localhost:3128"'
-      )
-      o.integer(
-        '--attempts',
-        'How many times should we try before failing',
-        default: 1
-      )
-      o.bool(
-        '--dry',
-        'Don\'t send a real payment, run in a read-only mode'
-      )
-      o.bool('--help', 'Read this: https://github.com/yegor256/erc20') do
-        puts o
-        exit
-      end
-      o.bool('--verbose', 'Print all possible debug messages')
+    o.string(
+      '--contract',
+      'Public address of ERC20 contract',
+      default: ERC20::Wallet::USDT
+    )
+    o.integer(
+      '--chain',
+      'Ethereum chain ID',
+      default: 1
+    )
+    o.bool(
+      '--ssl',
+      'Use SSL for HTTP connections',
+      default: true
+    )
+    o.string(
+      '--host',
+      'Host name of the provider',
+      default: 'eth.llamarpc.com'
+    )
+    o.string(
+      '--port',
+      'TCP port of the provider',
+      default: 443
+    )
+    o.string(
+      '--http_path',
+      'URL path for the HTTP RPC entry point of the provider',
+      default: '/'
+    )
+    o.string(
+      '--ws_path',
+      'URL path for the Websockets entry point of the provider',
+      default: '/'
+    )
+    o.string(
+      '--proxy',
+      'HTTP/S proxy for all requests, e.g. "localhost:3128"'
+    )
+    o.integer(
+      '--attempts',
+      'How many times should we try before failing',
+      default: 1
+    )
+    o.bool(
+      '--dry',
+      'Don\'t send a real payment, run in a read-only mode'
+    )
+    o.bool('--help', 'Read this: https://github.com/yegor256/erc20') do
+      log.info(o)
+      exit
     end
-  rescue Slop::Error => e
-    raise e.message
+    o.bool('--verbose', 'Print all possible debug messages')
   end
   raise 'Try --help' if opts.arguments.empty?
-  log = opts[:verbose] ? Loog::VERBOSE : Loog::REGULAR
   wallet =
     if opts[:dry]
       ERC20::FakeWallet.new
@@ -99,25 +96,25 @@ Options are:"
     end
   case opts.arguments[0]
   when 'key'
-    puts Eth::Key.new.private_hex.downcase
+    log.info(Eth::Key.new.private_hex.downcase)
   when 'address'
-    puts Eth::Key.new(priv: opts.arguments[1]).address.to_s.downcase
+    log.info(Eth::Key.new(priv: opts.arguments[1]).address.to_s.downcase)
   when 'price'
-    puts wallet.gas_price
+    log.info(wallet.gas_price)
   when 'balance'
     address = opts.arguments[1]
     raise 'Address is required' if address.nil?
     log.debug("Checking ERC20 balance of #{address}")
     tokens = wallet.balance(address)
     log.debug("The balance is #{tokens} ERC20 tokens (#{tokens.to_f / 1_000_000} USDT)")
-    puts tokens
+    log.info(tokens)
   when 'eth_balance'
     address = opts.arguments[1]
     raise 'Address is required' if address.nil?
     log.debug("Checking ETH balance of #{address}")
     wei = wallet.eth_balance(address)
     log.debug("The balance of #{address} is #{wei} wei (#{format('%0.4f', wei.to_f / 1_000_000_000_000_000_000)} ETH)")
-    puts wei
+    log.info(wei)
   when 'pay'
     pkey = opts.arguments[1]
     raise 'Private key is required' if pkey.nil?
@@ -144,7 +141,7 @@ Options are:"
     if wallet.eth_balance(priv.address.to_s).zero?
       log.debug("ETH balance of #{priv.address} is zero, the txn most definitely will be rejected by the server!")
     end
-    puts wallet.pay(priv.private_hex, address, amount)
+    log.info(wallet.pay(priv.private_hex, address, amount))
   when 'eth_pay'
     pkey = opts.arguments[1]
     raise 'Private key is required' if pkey.nil?
@@ -168,15 +165,12 @@ Options are:"
       raise "Can't understand amount: #{amount.inspect}"
     end
     log.debug("Sending #{amount} wei...")
-    puts wallet.eth_pay(priv.private_hex, address, amount)
+    log.info(wallet.eth_pay(priv.private_hex, address, amount))
   else
     raise "Command #{opts.arguments[0]} is not supported"
   end
 rescue StandardError => e
-  if opts[:verbose]
-    puts Backtrace.new(e)
-  else
-    puts "ERROR: #{e.message}"
-  end
+  log.debug(Backtrace.new(e))
+  log.error(e.message)
   exit(255)
 end
