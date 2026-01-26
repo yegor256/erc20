@@ -11,6 +11,11 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestBin < ERC20::Test
+  def test_prints_help
+    stdout = qbash(bin, '--help')
+    assert_includes(stdout, 'Commands are:')
+  end
+
   def test_generates_private_key
     stdout = qbash(bin, 'key')
     assert_match(/^[a-f0-9]{64}$/, stdout.strip)
