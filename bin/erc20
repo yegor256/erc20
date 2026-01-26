@@ -49,6 +49,11 @@ class Bin < Thor
   class_option :verbose, type: :boolean, default: false,
     desc: 'Print all possible debug messages'
 
+  desc 'version', 'Print version of the tool'
+  def version
+    log.info(ERC20::VERSION)
+  end
+
   desc 'key', 'Generate a new Ethereum private key (64 hex symbols)'
   def key
     log.info(Eth::Key.new.private_hex.downcase)

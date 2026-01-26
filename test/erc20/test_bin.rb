@@ -17,6 +17,10 @@ class TestBin < ERC20::Test
     assert_includes(stdout, 'Commands are:', 'help does not list commands')
   end
 
+  def test_prints_version
+    qbash(bin, 'version')
+  end
+
   def test_generates_private_key
     stdout = qbash(bin, 'key')
     assert_match(/^[a-f0-9]{64}$/, stdout.strip, 'key is not 64 hex chars')
