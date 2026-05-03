@@ -77,7 +77,7 @@ class ERC20::FakeWallet
     42_000_000
   end
 
-  # How much gas units is required in order to send ERC20 transaction.
+  # How many gas units are required to send an ERC20 transaction.
   #
   # @param [String] from The departing address, in hex
   # @param [String] to Arriving address, in hex

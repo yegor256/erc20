@@ -29,7 +29,7 @@ Or simply add this to your Gemfile:
 gem 'erc20'
 ```
 
-Then, make an instance of the main class and use to read
+Then, make an instance of the main class and use it to read
 balances, send and receive payments:
 
 ```ruby
