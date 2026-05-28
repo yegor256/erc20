@@ -24,6 +24,5 @@
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 module ERC20
-  # Current version of the gem (changed by the +.rultor.yml+ on every release)
   VERSION = '0.0.0' unless defined?(VERSION)
 end

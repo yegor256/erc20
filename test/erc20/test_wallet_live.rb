@@ -14,36 +14,33 @@ require 'random-port'
 require 'shellwords'
 require 'threads'
 require 'typhoeus'
-require_relative '../test__helper'
 require_relative '../../lib/erc20/wallet'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWalletLive < ERC20::Test
-  # At this address, in Ethereum mainnet, there are $8 USDT and 0.0042 ETH. I won't
-  # move them anyway, that's why tests can use this address forever.
   STABLE = '0x7232148927F8a580053792f44D4d59d40Fd00ABD'
 
   def test_checks_balance_on_mainnet
     WebMock.enable_net_connect!
     b = mainnet.balance(STABLE)
     refute_nil(b)
-    assert_equal(8_000_000, b) # this is $8 USDT
+    assert_equal(8_000_000, b)
   end
 
   def test_checks_eth_balance_on_mainnet
     WebMock.enable_net_connect!
     b = mainnet.eth_balance(STABLE)
     refute_nil(b)
-    assert_equal(4_200_000_000_000_000, b) # this is 0.0042 ETH
+    assert_equal(4_200_000_000_000_000, b)
   end
 
   def test_checks_balance_of_absent_address
     WebMock.enable_net_connect!
-    a = '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff'
-    b = mainnet.balance(a)
+    b = mainnet.balance('0xEB2fE8872A6f1eDb70a2632Effffffffffffffff')
     refute_nil(b)
     assert_equal(0, b)
   end
@@ -70,13 +67,12 @@ class TestWalletLive < ERC20::Test
 
   def test_checks_balance_on_polygon
     WebMock.enable_net_connect!
-    w = ERC20::Wallet.new(
+    b = ERC20::Wallet.new(
       contract: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
       host: 'polygon-mainnet.infura.io',
       http_path: "/v3/#{env('INFURA_KEY')}",
       log: fake_loog
-    )
-    b = w.balance(STABLE)
+    ).balance(STABLE)
     refute_nil(b)
     assert_predicate(b, :zero?)
   end
@@ -88,9 +84,7 @@ class TestWalletLive < ERC20::Test
     net = mainnet
     daemon =
       Thread.new do
-        net.accept([STABLE], active) do |_|
-          # ignore it
-        end
+        net.accept([STABLE], active) { |_| nil }
       rescue StandardError => e
         failed = true
         fake_loog.error(Backtrace.new(e))
@@ -111,23 +105,20 @@ class TestWalletLive < ERC20::Test
   def test_checks_balance_via_proxy_on_mainnet
     WebMock.enable_net_connect!
     via_proxy do |proxy|
-      w = ERC20::Wallet.new(
-        host: 'mainnet.infura.io',
-        http_path: "/v3/#{env('INFURA_KEY')}",
-        proxy:, log: fake_loog
+      assert_equal(
+        8_000_000,
+        ERC20::Wallet.new(
+          host: 'mainnet.infura.io', http_path: "/v3/#{env('INFURA_KEY')}", proxy:,
+          log: fake_loog
+        ).balance(STABLE)
       )
-      assert_equal(8_000_000, w.balance(STABLE))
     end
   end
 
   def test_pays_on_mainnet
     WebMock.enable_net_connect!
     skip('This is live, must be run manually')
-    w = mainnet
-    print 'Enter Ethereum ERC20 private key (64 chars): '
-    priv = gets.chomp
-    to = '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6'
-    txn = w.pay(priv, to, 1_990_000)
-    assert_equal(66, txn.length)
+    print('Enter Ethereum ERC20 private key (64 chars): ')
+    assert_equal(66, mainnet.pay(gets.chomp, '0xEB2fE8872A6f1eDb70a2632EA1f869AB131532f6', 1_990_000).length)
   end
 end

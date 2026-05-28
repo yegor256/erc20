@@ -14,46 +14,42 @@ require 'random-port'
 require 'shellwords'
 require 'threads'
 require 'typhoeus'
-require_relative '../test__helper'
 require_relative '../../lib/erc20/wallet'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWalletHardhat < ERC20::Test
-  # One guy private hex.
   JEFF = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
 
-  # Another guy private hex.
   WALTER = '91f9111b1744d55361e632771a4e53839e9442a9fef45febc0a5c838c686a15b'
 
   def test_checks_gas_estimate
     WebMock.enable_net_connect!
     sum = 100_000
     on_hardhat do |wallet|
-      b1 = wallet.gas_estimate(
-        Eth::Key.new(priv: JEFF).address.to_s,
-        Eth::Key.new(priv: WALTER).address.to_s,
-        sum
+      assert_operator(
+        wallet.gas_estimate(
+          Eth::Key.new(priv: JEFF).address.to_s, Eth::Key.new(priv: WALTER).address.to_s,
+          sum
+        ), :>, 21_000
       )
-      assert_operator(b1, :>, 21_000)
     end
   end
 
   def test_checks_balance
     WebMock.enable_net_connect!
     on_hardhat do |wallet|
-      b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
-      assert_equal(123_000_100_000, b)
+      assert_equal(123_000_100_000, wallet.balance(Eth::Key.new(priv: JEFF).address.to_s))
     end
   end
 
   def test_checks_eth_balance
     WebMock.enable_net_connect!
     on_hardhat do |wallet|
-      b = wallet.balance(Eth::Key.new(priv: WALTER).address.to_s)
-      assert_equal(456_000_000_000, b)
+      assert_equal(456_000_000_000, wallet.balance(Eth::Key.new(priv: WALTER).address.to_s))
     end
   end
 
@@ -61,8 +57,7 @@ class TestWalletHardhat < ERC20::Test
     WebMock.enable_net_connect!
     on_hardhat do |wallet|
       Threads.new.assert do
-        b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
-        assert_equal(123_000_100_000, b)
+        assert_equal(123_000_100_000, wallet.balance(Eth::Key.new(priv: JEFF).address.to_s))
       end
     end
   end
@@ -71,10 +66,11 @@ class TestWalletHardhat < ERC20::Test
     WebMock.enable_net_connect!
     on_hardhat do |wallet|
       to = Eth::Key.new(priv: WALTER).address.to_s
-      before = wallet.balance(to)
       sum = 42_000
-      from = Eth::Key.new(priv: JEFF).address.to_s
-      assert_operator(wallet.balance(from), :>, sum * 2)
+      assert_operator(wallet.balance(Eth::Key.new(priv: JEFF).address.to_s), :>, sum * 2)
+      # rubocop:disable Elegant/NoRedundantVariable
+      before = wallet.balance(to)
+      # rubocop:enable Elegant/NoRedundantVariable
       txn = wallet.pay(JEFF, to, sum)
       assert_equal(66, txn.length)
       assert_match(/^0x[a-f0-9]{64}$/, txn)
@@ -86,8 +82,7 @@ class TestWalletHardhat < ERC20::Test
     WebMock.enable_net_connect!
     on_hardhat do |wallet|
       sum = 33_330
-      txn = wallet.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, sum)
-      assert_equal(sum, wallet.sum_of(txn))
+      assert_equal(sum, wallet.sum_of(wallet.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, sum)))
     end
   end
 
@@ -95,10 +90,11 @@ class TestWalletHardhat < ERC20::Test
     WebMock.enable_net_connect!
     on_hardhat do |wallet|
       to = Eth::Key.new(priv: WALTER).address.to_s
-      before = wallet.eth_balance(to)
       sum = 42_000
-      from = Eth::Key.new(priv: JEFF).address.to_s
-      assert_operator(wallet.eth_balance(from), :>, sum * 2)
+      assert_operator(wallet.eth_balance(Eth::Key.new(priv: JEFF).address.to_s), :>, sum * 2)
+      # rubocop:disable Elegant/NoRedundantVariable
+      before = wallet.eth_balance(to)
+      # rubocop:enable Elegant/NoRedundantVariable
       txn = wallet.eth_pay(JEFF, to, sum)
       assert_equal(66, txn.length)
       assert_match(/^0x[a-f0-9]{64}$/, txn)
@@ -110,9 +106,11 @@ class TestWalletHardhat < ERC20::Test
     WebMock.enable_net_connect!
     on_hardhat do |wallet|
       to = Eth::Key.new(priv: WALTER).address.to_s
-      before = wallet.balance(to)
       sum = 42_000
       mul = 10
+      # rubocop:disable Elegant/NoRedundantVariable
+      before = wallet.balance(to)
+      # rubocop:enable Elegant/NoRedundantVariable
       Threads.new(mul).assert do
         wallet.pay(JEFF, to, sum)
       end
@@ -124,9 +122,11 @@ class TestWalletHardhat < ERC20::Test
     WebMock.enable_net_connect!
     on_hardhat do |wallet|
       to = Eth::Key.new(priv: WALTER).address.to_s
-      before = wallet.eth_balance(to)
       sum = 42_000
       mul = 10
+      # rubocop:disable Elegant/NoRedundantVariable
+      before = wallet.eth_balance(to)
+      # rubocop:enable Elegant/NoRedundantVariable
       Threads.new(mul).assert do
         wallet.eth_pay(JEFF, to, sum)
       end
@@ -232,7 +232,7 @@ class TestWalletHardhat < ERC20::Test
         Thread.new do
           wallet.accept([walter], active) do |e|
             events.add(e)
-            raise 'intentional'
+            raise(StandardError, 'intentional')
           end
         end
       wait_for { !active.empty? }
@@ -264,17 +264,17 @@ class TestWalletHardhat < ERC20::Test
           fake_loog.error(Backtrace.new(e))
         end
       wait_for { active.to_a.include?(walter) }
-      sum1 = 453_000
-      wallet.pay(JEFF, walter, sum1)
+      first = 453_000
+      wallet.pay(JEFF, walter, first)
       wait_for { !event.nil? }
-      assert_equal(sum1, event[:amount])
-      sum2 = 22_000
+      assert_equal(first, event[:amount])
+      second = 22_000
       event = nil
       addresses.append(jeff)
       wait_for { active.to_a.include?(jeff) }
-      wallet.pay(WALTER, jeff, sum2)
+      wallet.pay(WALTER, jeff, second)
       wait_for { !event.nil? }
-      assert_equal(sum2, event[:amount])
+      assert_equal(second, event[:amount])
       daemon.kill
       daemon.join(30)
     end
@@ -313,8 +313,7 @@ class TestWalletHardhat < ERC20::Test
     b = nil
     via_proxy do |proxy|
       on_hardhat do |w|
-        wallet = through_proxy(w, proxy)
-        b = wallet.balance(Eth::Key.new(priv: JEFF).address.to_s)
+        b = through_proxy(w, proxy).balance(Eth::Key.new(priv: JEFF).address.to_s)
       end
     end
     assert_equal(123_000_100_000, b)

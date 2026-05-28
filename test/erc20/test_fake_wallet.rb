@@ -12,8 +12,8 @@ require 'random-port'
 require 'shellwords'
 require 'threads'
 require 'typhoeus'
-require_relative '../test__helper'
 require_relative '../../lib/erc20/fake_wallet'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
@@ -21,17 +21,17 @@ require_relative '../../lib/erc20/fake_wallet'
 # License:: MIT
 class TestFakeWallet < ERC20::Test
   def test_checks_gas_estimate
-    b = ERC20::FakeWallet.new.gas_estimate(
-      '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff',
-      '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1',
-      44_000
+    refute_nil(
+      ERC20::FakeWallet.new.gas_estimate(
+        '0xEB2fE8872A6f1eDb70a2632Effffffffffffffff',
+        '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1',
+        44_000
+      )
     )
-    refute_nil(b)
   end
 
   def test_checks_gas_price
-    gwei = ERC20::FakeWallet.new.gas_price
-    refute_nil(gwei)
+    refute_nil(ERC20::FakeWallet.new.gas_price)
   end
 
   def test_checks_fake_balance
@@ -69,8 +69,9 @@ class TestFakeWallet < ERC20::Test
   end
 
   def test_reads_sum_of_payment
-    txn = '0xcf0598d640d4bea3367e6af28a08c54342a39156afd292a31453778e4755945d'
-    assert_predicate(ERC20::FakeWallet.new.sum_of(txn), :positive?)
+    assert_predicate(
+      ERC20::FakeWallet.new.sum_of('0xcf0598d640d4bea3367e6af28a08c54342a39156afd292a31453778e4755945d'), :positive?
+    )
   end
 
   def test_returns_host
@@ -90,9 +91,11 @@ class TestFakeWallet < ERC20::Test
   end
 
   def test_pays_fake_eths
-    priv = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
-    to = '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'
-    txn = ERC20::FakeWallet.new.eth_pay(Eth::Key.new(priv:), to, 555)
+    txn = ERC20::FakeWallet.new.eth_pay(
+      Eth::Key.new(priv: '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'),
+      '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1',
+      555
+    )
     assert_equal(66, txn.length)
     assert_match(/^0x[a-f0-9]{64}$/, txn)
   end

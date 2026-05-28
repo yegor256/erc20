@@ -12,14 +12,9 @@ require_relative 'wallet'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class ERC20::FakeWallet
-  # Transaction hash always returned:
   TXN_HASH = '0x172de9cda30537eae68ab4a96163ebbb8f8a85293b8737dd2e5deb4714b14623'
 
-  # Fakes:
-  attr_reader :host, :port, :ssl, :chain, :contract, :ws_path, :http_path
-
-  # Full history of all method calls:
-  attr_reader :history
+  attr_reader :host, :port, :ssl, :chain, :contract, :ws_path, :http_path, :history
 
   # Ctor.
   def initialize
@@ -137,7 +132,7 @@ class ERC20::FakeWallet
       sleep(delay)
       a = addresses.to_a.sample
       next if a.nil?
-      event =
+      yield(
         if raw
           {}
         else
@@ -148,7 +143,7 @@ class ERC20::FakeWallet
             txn: TXN_HASH
           }
         end
-      yield event
+      )
     end
   end
 end

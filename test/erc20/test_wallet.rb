@@ -14,18 +14,16 @@ require 'random-port'
 require 'shellwords'
 require 'threads'
 require 'typhoeus'
-require_relative '../test__helper'
 require_relative '../../lib/erc20/wallet'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class TestWallet < ERC20::Test
-  # One guy private hex.
   JEFF = '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'
 
-  # Another guy private hex.
   WALTER = '91f9111b1744d55361e632771a4e53839e9442a9fef45febc0a5c838c686a15b'
 
   def test_logs_to_stdout
@@ -34,12 +32,10 @@ class TestWallet < ERC20::Test
       body: { jsonrpc: '2.0', id: 42, result: '0x1F1F1F' }.to_json,
       headers: { 'Content-Type' => 'application/json' }
     )
-    w = ERC20::Wallet.new(
-      host: 'example.org',
-      http_path: '/',
+    ERC20::Wallet.new(
+      host: 'example.org', http_path: '/',
       log: $stdout
-    )
-    w.balance(Eth::Key.new(priv: JEFF).address.to_s)
+    ).balance(Eth::Key.new(priv: JEFF).address.to_s)
   end
 
   def test_checks_balance_on_testnet
@@ -52,7 +48,7 @@ class TestWallet < ERC20::Test
   def test_rejects_gas_limit_below_minimum
     WebMock.disable_net_connect!
     w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
-    assert_raises(RuntimeError) do
+    assert_raises(ArgumentError) do
       w.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000, limit: 20_999, price: 1000)
     end
   end
@@ -60,7 +56,7 @@ class TestWallet < ERC20::Test
   def test_rejects_gas_limit_above_maximum
     WebMock.disable_net_connect!
     w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
-    assert_raises(RuntimeError) do
+    assert_raises(ArgumentError) do
       w.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000, limit: 30_000_001, price: 1000)
     end
   end

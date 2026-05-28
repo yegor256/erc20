@@ -4,5 +4,5 @@
 # SPDX-License-Identifier: MIT
 
 require_relative 'erc20/erc20'
-require_relative 'erc20/wallet'
 require_relative 'erc20/fake_wallet'
+require_relative 'erc20/wallet'

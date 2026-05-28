@@ -15,8 +15,8 @@ unless SimpleCov.running
       SimpleCov::Formatter::CoberturaFormatter
     ]
   )
-  SimpleCov.minimum_coverage 90
-  SimpleCov.minimum_coverage_by_file 90
+  SimpleCov.minimum_coverage(90)
+  SimpleCov.minimum_coverage_by_file(90)
   SimpleCov.start do
     add_filter 'test/'
     add_filter 'vendor/'
@@ -28,10 +28,9 @@ end
 
 require 'minitest/autorun'
 require 'minitest/reporters'
-Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
-Minitest.load :minitest_reporter
+Minitest::Reporters.use!([Minitest::Reporters::SpecReporter.new])
+Minitest.load(:minitest_reporter)
 
-# To make tests retry on failure:
 if ENV['RAKE']
   require 'minitest/retry'
   Minitest::Retry.use!
@@ -73,7 +72,7 @@ class ERC20::Test < Minitest::Test
       sleep(0.1)
       break if yield
       passed = Time.now - start
-      raise "Giving up after #{passed} seconds of waiting" if passed > seconds
+      raise(StandardError, "Giving up after #{passed} seconds of waiting") if passed > seconds
     rescue Errno::ECONNREFUSED
       retry
     end
@@ -103,12 +102,7 @@ class ERC20::Test < Minitest::Test
         ws_path: "/#{env('GETBLOCK_WS_KEY')}"
       }
     ].map do |server|
-      ERC20::Wallet.new(
-        host: server[:host],
-        http_path: server[:http_path],
-        ws_path: server[:ws_path],
-        log: fake_loog
-      )
+      ERC20::Wallet.new(host: server[:host], http_path: server[:http_path], ws_path: server[:ws_path], log: fake_loog)
     end.sample
   end
 
@@ -125,12 +119,7 @@ class ERC20::Test < Minitest::Test
         ws_path: "/#{env('GETBLOCK_SEPOILA_KEY')}"
       }
     ].map do |server|
-      ERC20::Wallet.new(
-        host: server[:host],
-        http_path: server[:http_path],
-        ws_path: server[:ws_path],
-        log: fake_loog
-      )
+      ERC20::Wallet.new(host: server[:host], http_path: server[:http_path], ws_path: server[:ws_path], log: fake_loog)
     end.sample
   end
 
@@ -148,16 +137,13 @@ class ERC20::Test < Minitest::Test
         image: 'yegor256/squid-proxy:latest',
         ports: { port => 3128 },
         env: { 'USERNAME' => 'jeffrey', 'PASSWORD' => 'swordfish' },
-        root: true, log: fake_loog
+        root: true
       ) do
         proxy = "http://jeffrey:swordfish@localhost:#{port}"
         wait_for do
-          Typhoeus::Request.get(
-            'https://www.google.com/generate_204',
-            proxy:, timeout: 5
-          ).code == 204
+          Typhoeus::Request.get('https://www.google.com/generate_204', proxy:, timeout: 5).code == 204
         end
-        yield proxy
+        yield(proxy)
       end
     end
   end
@@ -185,8 +171,7 @@ class ERC20::Test < Minitest::Test
         home: File.join(__dir__, '../hardhat'),
         ports: { port => 8545 },
         volumes: die ? { File.dirname(die) => '/die' } : {},
-        command: "/bin/bash -c #{Shellwords.escape(cmd)}",
-        log: fake_loog
+        command: "/bin/bash -c #{Shellwords.escape(cmd)}"
       ) do
         wait_for_port(port)
         cmd = [
@@ -195,19 +180,19 @@ class ERC20::Test < Minitest::Test
           '(echo y | npx hardhat ignition deploy ./ignition/modules/Foo.ts --network foo --deployment-id foo)',
           '(npx hardhat ignition status foo | tail -1 | cut -d" " -f3)'
         ].join(' && ')
-        contract = donce(
-          home: File.join(__dir__, '../hardhat'),
-          command: "/bin/bash -c #{Shellwords.escape(cmd)}",
-          build_args: { 'HOST' => donce_host, 'PORT' => port },
-          log: fake_loog,
-          root: true
-        ).split("\n").last
-        wallet = ERC20::Wallet.new(
-          contract:, chain: 4242,
-          host: 'localhost', port:, http_path: '/', ws_path: '/', ssl: false,
-          log: fake_loog
+        yield(
+          ERC20::Wallet.new(
+            contract: donce(
+              home: File.join(__dir__, '../hardhat'),
+              command: "/bin/bash -c #{Shellwords.escape(cmd)}",
+              build_args: { 'HOST' => donce_host, 'PORT' => port },
+              root: true
+            ).split("\n").last,
+            chain: 4242,
+            host: 'localhost', port:, http_path: '/', ws_path: '/', ssl: false,
+            log: fake_loog
+          )
         )
-        yield wallet
       end
     end
   end

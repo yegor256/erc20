@@ -14,6 +14,7 @@ plugins:
   - rubocop-performance
   - rubocop-rake
   - rubocop-minitest
+  - rubocop-elegant
 Minitest/EmptyLineBeforeAssertionMethods:
   Enabled: false
 Gemspec/RequiredRubyVersion:
@@ -46,4 +47,31 @@ Security/MarshalLoad:
   Enabled: false
 Layout/MultilineAssignmentLayout:
   Enabled: true
+Elegant/GoodMethodName:
+  AllowedNames:
+    - eth_balance
+    - eth_pay
+    - gas_estimate
+    - gas_price
+    - log_it
+    - set_balance
+    - set_eth_balance
+    - sum_of
+    - to_pay_data
+    - wait_for
+    - wait_for_port
+    - through_proxy
+    - via_proxy
+    - test_fetches_erc20_balance
+    - test_sends_erc20_payment
+    - test_sends_erc20_payment_in_usdt
+    - test_sends_erc20_payment_in_dollars
+Elegant/GoodVariableName:
+  AllowedNames:
+    - '@ws_path'
+    - '@http_path'
+    - '@eth_balances'
+    - log_url
+    - to_clean
+    - amt_hex
 require: []
