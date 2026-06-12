@@ -73,11 +73,12 @@ class ERC20::Wallet
   # @param [Boolean] ssl Should we use SSL (for https and wss)
   # @param [String] proxy The URL of the proxy to use
   # @param [Integer] attempts How many times to retry a failed HTTP RPC call before giving up
+  # @param [Array<String>] fallbacks Alternative HTTP RPC endpoint URLs to try when the primary one fails
   # @param [Object] log The destination for logs
   def initialize(
     contract: USDT, chain: 1, log: $stdout,
     host: nil, port: 443, http_path: '/', ws_path: '/',
-    ssl: true, proxy: nil, attempts: 1
+    ssl: true, proxy: nil, attempts: 1, fallbacks: []
   )
     raise(ArgumentError, 'Contract can\'t be nil') unless contract
     raise(ArgumentError, 'Contract must be a String') unless contract.is_a?(String)
@@ -109,6 +110,12 @@ class ERC20::Wallet
     raise(ArgumentError, 'Attempts must be an Integer') unless attempts.is_a?(Integer)
     raise(ArgumentError, 'Attempts must be a positive Integer') unless attempts.positive?
     @attempts = attempts
+    raise(ArgumentError, 'Fallbacks can\'t be nil') if fallbacks.nil?
+    raise(ArgumentError, 'Fallbacks must be an Array') unless fallbacks.is_a?(Array)
+    fallbacks.each do |f|
+      raise(ArgumentError, 'Each fallback must be a String') unless f.is_a?(String)
+    end
+    @fallbacks = fallbacks
     @mutex = Mutex.new
   end
 
@@ -514,16 +521,18 @@ class ERC20::Wallet
           f.proxy = { uri: "#{uri.scheme}://#{uri.hostname}:#{uri.port}", user: uri.user, password: uri.password }
         end
     end
+    endpoints = [url.to_s] + @fallbacks
     attempt = 0
     begin
       attempt += 1
-      elapsed(@log, good: "Talked to #{url.host}:#{url.port}") do
-        yield(JSONRPC::Client.new(url.to_s, opts))
+      u = URI.parse(endpoints[(attempt - 1) % endpoints.size])
+      elapsed(@log, good: "Talked to #{u.host}:#{u.port}") do
+        yield(JSONRPC::Client.new(u.to_s, opts))
       end
     rescue StandardError => e
       raise if attempt >= @attempts
       pause = 2**(attempt - 1)
-      log_it(:debug, "Attempt #{attempt}/#{@attempts} to #{url.host} failed (#{e.class}), retrying in #{pause}s")
+      log_it(:debug, "Attempt #{attempt}/#{@attempts} to #{u.host} failed (#{e.class}), retrying in #{pause}s")
       sleep(pause)
       retry
     end

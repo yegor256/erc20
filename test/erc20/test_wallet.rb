@@ -72,6 +72,29 @@ class TestWallet < ERC20::Test
     end
   end
 
+  def test_falls_back_to_secondary_endpoint
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      status: 200, body: CHALLENGE, headers: { 'Content-Type' => 'text/html' }
+    )
+    stub_request(:post, 'https://backup.example.org/').to_return(
+      status: 200, body: GOOD_JSON, headers: { 'Content-Type' => 'application/json' }
+    )
+    w = ERC20::Wallet.new(
+      host: 'example.org', http_path: '/',
+      fallbacks: ['https://backup.example.org/'], attempts: 2, log: Loog::NULL
+    )
+    w.define_singleton_method(:sleep) { |*| nil }
+    assert_equal(0x1F1F1F, w.balance(Eth::Key.new(priv: JEFF).address.to_s))
+  end
+
+  def test_rejects_non_array_fallbacks
+    WebMock.disable_net_connect!
+    assert_raises(ArgumentError) do
+      ERC20::Wallet.new(host: 'example.org', http_path: '/', fallbacks: 'https://x.org/', log: Loog::NULL)
+    end
+  end
+
   def test_rejects_negative_attempts
     WebMock.disable_net_connect!
     assert_raises(ArgumentError) do
