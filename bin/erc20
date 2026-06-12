@@ -136,6 +136,7 @@ class Bin < Thor
           host: options[:host], port: options[:port].to_i,
           http_path: options[:http_path], ws_path: options[:ws_path],
           ssl: options[:ssl],
+          attempts: options[:attempts].to_i,
           log: log
         )
       end

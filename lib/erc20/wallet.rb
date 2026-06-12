@@ -72,11 +72,12 @@ class ERC20::Wallet
   # @param [String] ws_path The path in the connection URL, for Websockets
   # @param [Boolean] ssl Should we use SSL (for https and wss)
   # @param [String] proxy The URL of the proxy to use
+  # @param [Integer] attempts How many times to retry a failed HTTP RPC call before giving up
   # @param [Object] log The destination for logs
   def initialize(
     contract: USDT, chain: 1, log: $stdout,
     host: nil, port: 443, http_path: '/', ws_path: '/',
-    ssl: true, proxy: nil
+    ssl: true, proxy: nil, attempts: 1
   )
     raise(ArgumentError, 'Contract can\'t be nil') unless contract
     raise(ArgumentError, 'Contract must be a String') unless contract.is_a?(String)
@@ -104,6 +105,10 @@ class ERC20::Wallet
     raise(ArgumentError, 'Chain must be a positive Integer') unless chain.positive?
     @chain = chain
     @proxy = proxy
+    raise(ArgumentError, 'Attempts can\'t be nil') unless attempts
+    raise(ArgumentError, 'Attempts must be an Integer') unless attempts.is_a?(Integer)
+    raise(ArgumentError, 'Attempts must be a positive Integer') unless attempts.positive?
+    @attempts = attempts
     @mutex = Mutex.new
   end
 
@@ -509,8 +514,18 @@ class ERC20::Wallet
           f.proxy = { uri: "#{uri.scheme}://#{uri.hostname}:#{uri.port}", user: uri.user, password: uri.password }
         end
     end
-    elapsed(@log, good: "Talked to #{url.host}:#{url.port}") do
-      yield(JSONRPC::Client.new(url.to_s, opts))
+    attempt = 0
+    begin
+      attempt += 1
+      elapsed(@log, good: "Talked to #{url.host}:#{url.port}") do
+        yield(JSONRPC::Client.new(url.to_s, opts))
+      end
+    rescue StandardError => e
+      raise if attempt >= @attempts
+      pause = 2**(attempt - 1)
+      log_it(:debug, "Attempt #{attempt}/#{@attempts} to #{url.host} failed (#{e.class}), retrying in #{pause}s")
+      sleep(pause)
+      retry
     end
   end
 

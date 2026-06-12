@@ -45,6 +45,40 @@ class TestWallet < ERC20::Test
     assert_predicate(b, :zero?)
   end
 
+  CHALLENGE = '<!DOCTYPE html><html><head><title>Just a moment...</title></head></html>'
+
+  GOOD_JSON = { jsonrpc: '2.0', id: 42, result: '0x1F1F1F' }.to_json
+
+  def test_retries_on_transient_non_json_response
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      { status: 200, body: CHALLENGE, headers: { 'Content-Type' => 'text/html' } },
+      { status: 200, body: GOOD_JSON, headers: { 'Content-Type' => 'application/json' } }
+    )
+    w = ERC20::Wallet.new(host: 'example.org', http_path: '/', attempts: 3, log: Loog::NULL)
+    w.define_singleton_method(:sleep) { |*| nil }
+    assert_equal(0x1F1F1F, w.balance(Eth::Key.new(priv: JEFF).address.to_s))
+  end
+
+  def test_fails_after_exhausting_attempts
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      status: 200, body: CHALLENGE, headers: { 'Content-Type' => 'text/html' }
+    )
+    w = ERC20::Wallet.new(host: 'example.org', http_path: '/', attempts: 3, log: Loog::NULL)
+    w.define_singleton_method(:sleep) { |*| nil }
+    assert_raises(StandardError) do
+      w.balance(Eth::Key.new(priv: JEFF).address.to_s)
+    end
+  end
+
+  def test_rejects_negative_attempts
+    WebMock.disable_net_connect!
+    assert_raises(ArgumentError) do
+      ERC20::Wallet.new(host: 'example.org', http_path: '/', attempts: 0, log: Loog::NULL)
+    end
+  end
+
   def test_rejects_gas_limit_below_minimum
     WebMock.disable_net_connect!
     w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
