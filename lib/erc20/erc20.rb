@@ -24,5 +24,5 @@
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 module ERC20
-  VERSION = '0.0.0' unless defined?(VERSION)
+  VERSION = '0.3.0' unless defined?(VERSION)
 end
