@@ -189,25 +189,35 @@ class ERC20::Wallet
     gas
   end
 
-  # What is the price of gas unit in gwei?
+  GAS_PRICE_TIP = 1_000_000_000
+
+  # What is the price of gas unit in wei?
   #
   # In Ethereum, gas is a unit that measures the computational work required to
   # execute operations on the network. Every transaction and smart contract
   # interaction consumes gas. Gas price is the amount of ETH you're willing to pay
-  # for each unit of gas, denominated in gwei (1 gwei = 0.000000001 ETH). Higher
+  # for each unit of gas, denominated in wei (1 gwei = 0.000000001 ETH). Higher
   # gas prices incentivize miners to include your transaction sooner, while lower
   # prices may result in longer confirmation times.
   #
-  # @return [Integer] Price of gas unit, in gwei (0.000000001 ETH)
+  # The returned price is not the bare EIP-1559 base fee. The base fee alone
+  # leaves a zero miner tip (+tip = gasPrice - baseFee = 0+), so proposers have
+  # no incentive to include the transaction, and it becomes unmineable the
+  # moment the base fee rises (it may grow up to 12.5% per block). To make the
+  # price mineable, we double the base fee (a buffer that absorbs several blocks
+  # of base-fee growth) and add a priority tip (+GAS_PRICE_TIP+).
+  #
+  # @return [Integer] Price of gas unit, in wei (1 gwei = 0.000000001 ETH)
   def gas_price
     block =
       with_jsonrpc do |jr|
         jr.eth_getBlockByNumber('latest', false)
       end
     raise(StandardError, "Can't get gas price, try again later") if block.nil?
-    gwei = block['baseFeePerGas'].to_i(16)
-    log_it(:debug, "The cost of one gas unit is #{gwei} gwei")
-    gwei
+    base = block['baseFeePerGas'].to_i(16)
+    price = (base * 2) + GAS_PRICE_TIP
+    log_it(:debug, "The base fee is #{base} wei, the cost of one gas unit is #{price} wei")
+    price
   end
 
   # Send a single ERC20 payment from a private address to a public one.
