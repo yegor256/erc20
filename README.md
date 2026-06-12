@@ -40,6 +40,8 @@ w = ERC20::Wallet.new(
   host: 'mainnet.infura.io',
   http_path: '/v3/<your-infura-key>',
   ws_path: '/ws/v3/<your-infura-key>',
+  attempts: 3, # retry failed HTTP RPC calls up to 3 times, with backoff
+  fallbacks: ['https://eth.drpc.org'], # alternative RPC endpoints to try
   log: $stdout
 )
 
@@ -75,8 +77,8 @@ To check the price of a gas unit and the expected cost of a payment:
 # How many gas units required to send this payment:
 units = w.gas_estimate(from, to, amount)
 
-# What is the price of a gas unit, in gwei:
-gwei = w.gas_price
+# What is the price of a gas unit, in wei:
+price = w.gas_price
 ```
 
 To generate a new private key, use [eth](https://rubygems.org/gems/eth):

@@ -72,11 +72,13 @@ class ERC20::Wallet
   # @param [String] ws_path The path in the connection URL, for Websockets
   # @param [Boolean] ssl Should we use SSL (for https and wss)
   # @param [String] proxy The URL of the proxy to use
+  # @param [Integer] attempts How many times to retry a failed HTTP RPC call before giving up
+  # @param [Array<String>] fallbacks Alternative HTTP RPC endpoint URLs to try when the primary one fails
   # @param [Object] log The destination for logs
   def initialize(
     contract: USDT, chain: 1, log: $stdout,
     host: nil, port: 443, http_path: '/', ws_path: '/',
-    ssl: true, proxy: nil
+    ssl: true, proxy: nil, attempts: 1, fallbacks: []
   )
     raise(ArgumentError, 'Contract can\'t be nil') unless contract
     raise(ArgumentError, 'Contract must be a String') unless contract.is_a?(String)
@@ -104,6 +106,16 @@ class ERC20::Wallet
     raise(ArgumentError, 'Chain must be a positive Integer') unless chain.positive?
     @chain = chain
     @proxy = proxy
+    raise(ArgumentError, 'Attempts can\'t be nil') unless attempts
+    raise(ArgumentError, 'Attempts must be an Integer') unless attempts.is_a?(Integer)
+    raise(ArgumentError, 'Attempts must be a positive Integer') unless attempts.positive?
+    @attempts = attempts
+    raise(ArgumentError, 'Fallbacks can\'t be nil') if fallbacks.nil?
+    raise(ArgumentError, 'Fallbacks must be an Array') unless fallbacks.is_a?(Array)
+    fallbacks.each do |f|
+      raise(ArgumentError, 'Each fallback must be a String') unless f.is_a?(String)
+    end
+    @fallbacks = fallbacks
     @mutex = Mutex.new
   end
 
@@ -189,25 +201,35 @@ class ERC20::Wallet
     gas
   end
 
-  # What is the price of gas unit in gwei?
+  GAS_PRICE_TIP = 1_000_000_000
+
+  # What is the price of gas unit in wei?
   #
   # In Ethereum, gas is a unit that measures the computational work required to
   # execute operations on the network. Every transaction and smart contract
   # interaction consumes gas. Gas price is the amount of ETH you're willing to pay
-  # for each unit of gas, denominated in gwei (1 gwei = 0.000000001 ETH). Higher
+  # for each unit of gas, denominated in wei (1 gwei = 0.000000001 ETH). Higher
   # gas prices incentivize miners to include your transaction sooner, while lower
   # prices may result in longer confirmation times.
   #
-  # @return [Integer] Price of gas unit, in gwei (0.000000001 ETH)
+  # The returned price is not the bare EIP-1559 base fee. The base fee alone
+  # leaves a zero miner tip (+tip = gasPrice - baseFee = 0+), so proposers have
+  # no incentive to include the transaction, and it becomes unmineable the
+  # moment the base fee rises (it may grow up to 12.5% per block). To make the
+  # price mineable, we double the base fee (a buffer that absorbs several blocks
+  # of base-fee growth) and add a priority tip (+GAS_PRICE_TIP+).
+  #
+  # @return [Integer] Price of gas unit, in wei (1 gwei = 0.000000001 ETH)
   def gas_price
     block =
       with_jsonrpc do |jr|
         jr.eth_getBlockByNumber('latest', false)
       end
     raise(StandardError, "Can't get gas price, try again later") if block.nil?
-    gwei = block['baseFeePerGas'].to_i(16)
-    log_it(:debug, "The cost of one gas unit is #{gwei} gwei")
-    gwei
+    base = block['baseFeePerGas'].to_i(16)
+    price = (base * 2) + GAS_PRICE_TIP
+    log_it(:debug, "The base fee is #{base} wei, the cost of one gas unit is #{price} wei")
+    price
   end
 
   # Send a single ERC20 payment from a private address to a public one.
@@ -499,8 +521,20 @@ class ERC20::Wallet
           f.proxy = { uri: "#{uri.scheme}://#{uri.hostname}:#{uri.port}", user: uri.user, password: uri.password }
         end
     end
-    elapsed(@log, good: "Talked to #{url.host}:#{url.port}") do
-      yield(JSONRPC::Client.new(url.to_s, opts))
+    endpoints = [url.to_s] + @fallbacks
+    attempt = 0
+    begin
+      attempt += 1
+      u = URI.parse(endpoints[(attempt - 1) % endpoints.size])
+      elapsed(@log, good: "Talked to #{u.host}:#{u.port}") do
+        yield(JSONRPC::Client.new(u.to_s, opts))
+      end
+    rescue StandardError => e
+      raise if attempt >= @attempts
+      pause = 2**(attempt - 1)
+      log_it(:debug, "Attempt #{attempt}/#{@attempts} to #{u.host} failed (#{e.class}), retrying in #{pause}s")
+      sleep(pause)
+      retry
     end
   end
 
