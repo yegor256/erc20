@@ -18,7 +18,7 @@ gem 'minitest-retry', '~>0.2', require: false
 gem 'qbash', '~>0.4', require: false
 gem 'rake', '~>13.2', require: false
 gem 'random-port', '~>0.7', require: false
-gem 'rdoc', '~>7.0', require: false
+gem 'rdoc', '~>8.0', require: false
 gem 'rubocop', '~>1.75', require: false
 gem 'rubocop-elegant', '~>0.5', require: false
 gem 'rubocop-minitest', '~>0.38', require: false
