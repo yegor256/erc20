@@ -26,8 +26,10 @@ unless SimpleCov.running
   end
 end
 
+require 'faraday'
 require 'fileutils'
 require 'json'
+require 'jsonrpc/client'
 require 'rbconfig'
 require 'socket'
 require 'tmpdir'
@@ -93,6 +95,21 @@ class ERC20::Test < Minitest::Test
     skip("The #{var} environment variable is not set") if key.nil?
     skip("The #{var} environment variable is empty") if key.empty?
     key
+  end
+
+  # Run a block that talks to a public Ethereum node and skip the test when the
+  # node is in trouble: down, throttling, or unreachable. An outage of a
+  # third-party provider is not a defect of this gem and must not paint the
+  # build red. Genuine RPC errors and broken assertions still do.
+  def live
+    yield
+  rescue JSONRPC::Error::ServerError => e
+    raise unless [-32_603, -32_005, -32_002].include?(e.code)
+    skip("The node is in trouble, thus skipping: #{e.message}")
+  rescue JSONRPC::Error::InvalidJSON, JSONRPC::Error::InvalidResponse => e
+    skip("The node answered with garbage, thus skipping: #{e.message}")
+  rescue Faraday::ConnectionFailed, Faraday::SSLError, Faraday::TimeoutError => e
+    skip("The node is unreachable, thus skipping: #{e.message}")
   end
 
   def mainnet

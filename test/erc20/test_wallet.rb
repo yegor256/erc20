@@ -40,9 +40,11 @@ class TestWallet < ERC20::Test
 
   def test_checks_balance_on_testnet
     WebMock.enable_net_connect!
-    b = testnet.balance(Eth::Key.new(priv: JEFF).address.to_s)
-    refute_nil(b)
-    assert_predicate(b, :zero?)
+    live do
+      b = testnet.balance(Eth::Key.new(priv: JEFF).address.to_s)
+      refute_nil(b)
+      assert_predicate(b, :zero?)
+    end
   end
 
   CHALLENGE = '<!DOCTYPE html><html><head><title>Just a moment...</title></head></html>'

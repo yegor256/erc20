@@ -26,31 +26,39 @@ class TestWalletLive < ERC20::Test
 
   def test_checks_balance_on_mainnet
     WebMock.enable_net_connect!
-    b = mainnet.balance(STABLE)
-    refute_nil(b)
-    assert_equal(8_000_000, b)
+    live do
+      b = mainnet.balance(STABLE)
+      refute_nil(b)
+      assert_equal(8_000_000, b)
+    end
   end
 
   def test_checks_eth_balance_on_mainnet
     WebMock.enable_net_connect!
-    b = mainnet.eth_balance(STABLE)
-    refute_nil(b)
-    assert_equal(4_200_000_000_000_000, b)
+    live do
+      b = mainnet.eth_balance(STABLE)
+      refute_nil(b)
+      assert_equal(4_200_000_000_000_000, b)
+    end
   end
 
   def test_checks_balance_of_absent_address
     WebMock.enable_net_connect!
-    b = mainnet.balance('0xEB2fE8872A6f1eDb70a2632Effffffffffffffff')
-    refute_nil(b)
-    assert_equal(0, b)
+    live do
+      b = mainnet.balance('0xEB2fE8872A6f1eDb70a2632Effffffffffffffff')
+      refute_nil(b)
+      assert_equal(0, b)
+    end
   end
 
   def test_checks_gas_estimate_on_mainnet
     WebMock.enable_net_connect!
-    b = mainnet.gas_estimate(STABLE, '0x7232148927F8a580053792f44D4d5FFFFFFFFFFF', 44_000)
-    refute_nil(b)
-    assert_predicate(b, :positive?)
-    assert_operator(b, :>, 1000)
+    live do
+      b = mainnet.gas_estimate(STABLE, '0x7232148927F8a580053792f44D4d5FFFFFFFFFFF', 44_000)
+      refute_nil(b)
+      assert_predicate(b, :positive?)
+      assert_operator(b, :>, 1000)
+    end
   end
 
   def test_fails_with_invalid_infura_key
@@ -67,32 +75,41 @@ class TestWalletLive < ERC20::Test
 
   def test_checks_balance_on_polygon
     WebMock.enable_net_connect!
-    b = ERC20::Wallet.new(
-      contract: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-      host: 'polygon-mainnet.infura.io',
-      http_path: "/v3/#{env('INFURA_KEY')}",
-      log: fake_loog
-    ).balance(STABLE)
-    refute_nil(b)
-    assert_predicate(b, :zero?)
+    live do
+      b = ERC20::Wallet.new(
+        contract: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+        host: 'polygon-mainnet.infura.io',
+        http_path: "/v3/#{env('INFURA_KEY')}",
+        log: fake_loog
+      ).balance(STABLE)
+      refute_nil(b)
+      assert_predicate(b, :zero?)
+    end
   end
 
   def test_accepts_payments_on_mainnet
     WebMock.enable_net_connect!
     active = []
-    failed = false
+    trouble = nil
     net = mainnet
     daemon =
       Thread.new do
         net.accept([STABLE], active) { |_| nil }
       rescue StandardError => e
-        failed = true
+        trouble = e
         fake_loog.error(Backtrace.new(e))
       end
-    wait_for { !active.empty? }
-    daemon.kill
-    daemon.join(30)
-    refute(failed)
+    live do
+      seen = []
+      wait_for do
+        seen = active.to_a.dup
+        !seen.empty? || !trouble.nil?
+      end
+      daemon.kill
+      daemon.join(30)
+      raise(trouble) unless trouble.nil?
+      refute_empty(seen)
+    end
   end
 
   def test_pings_google_via_proxy
@@ -105,13 +122,15 @@ class TestWalletLive < ERC20::Test
   def test_checks_balance_via_proxy_on_mainnet
     WebMock.enable_net_connect!
     via_proxy do |proxy|
-      assert_equal(
-        8_000_000,
-        ERC20::Wallet.new(
-          host: 'mainnet.infura.io', http_path: "/v3/#{env('INFURA_KEY')}", proxy:,
-          log: fake_loog
-        ).balance(STABLE)
-      )
+      live do
+        assert_equal(
+          8_000_000,
+          ERC20::Wallet.new(
+            host: 'mainnet.infura.io', http_path: "/v3/#{env('INFURA_KEY')}", proxy:,
+            log: fake_loog
+          ).balance(STABLE)
+        )
+      end
     end
   end
 
