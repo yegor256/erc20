@@ -141,7 +141,9 @@ class ERC20::FakeWallet
         else
           {
             amount: 424_242,
+            block: 42,
             from: '0xd5ff1bfcde7a03da61ad229d962c74f1ea2f16a5',
+            index: 0,
             to: a,
             txn: TXN_HASH
           }

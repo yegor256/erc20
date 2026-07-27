@@ -408,6 +408,17 @@ class ERC20::Wallet
   # out of +active+, the error goes to the log, and the next subscribe attempt
   # happens +delay+ seconds later.
   #
+  # A dropped connection leaves a gap: the blocks mined between the disconnect
+  # and the confirmation of the new subscription are not streamed by the node.
+  # After a reconnect, the logs of that gap are fetched with +eth_getLogs+ and
+  # yielded before the live ones. A payment may arrive twice this way, because
+  # the gap starts at the block of the last payment seen, and the block must be
+  # ready for it: use +txn+ and +index+ of the event as the key of the payment.
+  #
+  # An exception from the block does not stop the stream: it goes to the log
+  # and the event is gone, since the node has no way of sending it again. The
+  # block must handle its own errors, if the payment must not be lost.
+  #
   # A reorganization of the chain may revert a payment that was already mined.
   # The node then re-sends its log with the +removed+ flag set. Such an event
   # is not yielded, since the payment never happened. In +raw+ mode the event
@@ -446,16 +457,17 @@ class ERC20::Wallet
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
   # @param [Integer] delay How many seconds to wait between +eth_subscribe+ calls
   # @param [Integer] subscription_id Unique ID of the subscription
+  # @param [Integer] since The number of the last block we have seen a payment in
   # @return [Websocket]
-  def reaccept(addresses, active, raw:, delay:, subscription_id:, &)
+  def reaccept(addresses, active, raw:, delay:, subscription_id:, since: nil, &)
     u = url(http: false)
     log_it(:debug, "Connecting ##{subscription_id} to #{u.hostname}:#{u.port}...")
-    contract = @contract
     log_url = "ws#{'s' if @ssl}://#{u.hostname}:#{u.port}"
     ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {}, ping: 60)
     timer = nil
     subscription = nil
     wanted = nil
+    height = since
     ws.on(:open) do
       safe do
         verbose do
@@ -482,17 +494,7 @@ class ERC20::Wallet
                   jsonrpc: '2.0',
                   id: subscription_id,
                   method: 'eth_subscribe',
-                  params: [
-                    'logs',
-                    {
-                      address: contract,
-                      topics: [
-                        '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
-                        nil,
-                        wanted.map { |a| "0x000000000000000000000000#{a[2..]}" }
-                      ]
-                    }
-                  ]
+                  params: ['logs', to_filter(wanted)]
                 }.to_json
               )
               # rubocop:enable Style/Send
@@ -521,30 +523,29 @@ class ERC20::Wallet
               "Subscribed ##{subscription_id} to #{active.to_a.size} addresses at #{log_url}: " \
               "#{active.to_a.map { |a| a[0..6] }.join(', ')}"
             )
-          elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
-            event = data['params']['result']
-            if raw
-              log_it(:debug, "New event arrived from #{event['address']}")
-              yield(event)
-            elsif event['removed']
-              log_it(
-                :debug,
-                "Payment in #{event['transactionHash']} is reverted by a reorganization of the chain, ignoring it"
+            if since
+              # rubocop:disable Style/Send
+              ws.send(
+                {
+                  jsonrpc: '2.0',
+                  id: subscription_id + 2,
+                  method: 'eth_getLogs',
+                  params: [to_filter(wanted).merge(fromBlock: format('0x%x', since + 1), toBlock: 'latest')]
+                }.to_json
               )
-            else
-              event = {
-                amount: event['data'].to_i(16),
-                from: "0x#{event['topics'][1][26..].downcase}",
-                to: "0x#{event['topics'][2][26..].downcase}",
-                txn: event['transactionHash'].downcase
-              }
-              log_it(
-                :debug,
-                "Payment of #{event[:amount]} tokens arrived at ##{subscription_id} " \
-                "from #{event[:from]} to #{event[:to]} in #{event[:txn]}"
-              )
-              yield(event)
+              # rubocop:enable Style/Send
+              log_it(:debug, "Requested ##{subscription_id} the logs of the blocks after ##{since}")
+              since = nil
             end
+          elsif data['id'] == subscription_id + 2
+            log_it(:debug, "Received #{data['result'].size} logs mined while ##{subscription_id} was offline")
+            data['result'].each do |log|
+              height = [height, log['blockNumber'].to_s.to_i(16)].compact.max
+              deliver(log, raw:, id: subscription_id, &)
+            end
+          elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
+            height = [height, data['params']['result']['blockNumber'].to_s.to_i(16)].compact.max
+            deliver(data['params']['result'], raw:, id: subscription_id, &)
           end
         end
       end
@@ -555,7 +556,9 @@ class ERC20::Wallet
           log_it(:debug, "Disconnected ##{subscription_id} from #{log_url}")
           active.clear
           timer&.cancel
-          reaccept(addresses, active, raw:, delay:, subscription_id: subscription_id + 1, &)
+          EventMachine.add_timer(delay) do
+            reaccept(addresses, active, raw:, delay:, subscription_id: subscription_id + 1, since: height, &)
+          end
         end
       end
     end
@@ -566,6 +569,51 @@ class ERC20::Wallet
         end
       end
     end
+  end
+
+  def to_filter(addresses)
+    {
+      address: @contract,
+      topics: [
+        TRANSFER,
+        nil,
+        addresses.to_a.map { |a| "0x000000000000000000000000#{a[2..]}" }
+      ]
+    }
+  end
+
+  def to_event(log)
+    {
+      amount: log['data'].to_i(16),
+      block: log['blockNumber'].to_s.to_i(16),
+      from: "0x#{log['topics'][1][26..].downcase}",
+      index: log['logIndex'].to_s.to_i(16),
+      to: "0x#{log['topics'][2][26..].downcase}",
+      txn: log['transactionHash'].downcase
+    }
+  end
+
+  def deliver(log, raw:, id:, &)
+    if raw
+      log_it(:debug, "New event arrived from #{log['address']}")
+      digest(log, log['transactionHash'], &)
+    elsif log['removed']
+      log_it(:debug, "Payment in #{log['transactionHash']} is reverted by a reorganization of the chain, ignoring it")
+    else
+      event = to_event(log)
+      log_it(
+        :debug,
+        "Payment of #{event[:amount]} tokens arrived at ##{id} " \
+        "from #{event[:from]} to #{event[:to]} in #{event[:txn]}"
+      )
+      digest(event, event[:txn], &)
+    end
+  end
+
+  def digest(event, txn)
+    yield(event)
+  rescue StandardError => e
+    log_it(:error, "The block failed to process the payment in #{txn}, the event is lost (#{e.class}): #{e.message}")
   end
 
   def to_json(msg)

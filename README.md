@@ -58,8 +58,15 @@ w.accept(addresses) do |event|
   puts event[:amount] # how much, in tokens (1000000 = $1 USDT)
   puts event[:from] # who sent the payment
   puts event[:to] # who was the receiver
+  puts event[:block] # number of the block it was mined in
+  puts event[:index] # position of the log in the block
 end
 ```
+
+When the connection to the provider breaks, `accept` reconnects and fetches the
+logs of the blocks that were mined while it was away. A payment may reach the
+block twice because of that, so use `txn` and `index` together as the key of
+the payment and credit it only once.
 
 You can also check ETH balance and send ETH transactions:
 
