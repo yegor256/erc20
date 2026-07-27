@@ -142,7 +142,10 @@ class ERC20::Test < Minitest::Test
         ws_path: "/#{env('GETBLOCK_SEPOILA_KEY')}"
       }
     ].map do |server|
-      ERC20::Wallet.new(host: server[:host], http_path: server[:http_path], ws_path: server[:ws_path], log: fake_loog)
+      ERC20::Wallet.new(
+        contract: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', chain: 11_155_111,
+        host: server[:host], http_path: server[:http_path], ws_path: server[:ws_path], log: fake_loog
+      )
     end.sample
   end
 

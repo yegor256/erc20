@@ -125,6 +125,12 @@ class ERC20::Wallet
   # balance in ETH crypto. Another balance is the one kept by the ERC20 contract
   # in its own ledger in root storage. This balance is checked by this method.
   #
+  # An address that has no tokens has a balance of zero, but so does an address
+  # asked at the wrong contract or in the wrong chain: there, +eth_call+ succeeds
+  # with empty return data. A +balanceOf+ always answers with a single 32-byte
+  # word, thus anything shorter is a misconfiguration and an error is raised,
+  # instead of a zero that nobody may tell from a genuinely empty balance.
+  #
   # @param [String] address Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in tokens
   def balance(address)
@@ -132,7 +138,15 @@ class ERC20::Wallet
     raise(ArgumentError, 'Address must be a String') unless address.is_a?(String)
     raise(ArgumentError, 'Invalid format of the address') unless /^0x[0-9a-fA-F]{40}$/.match?(address)
     data = "0x70a08231000000000000000000000000#{address[2..].downcase}"
-    b = with_jsonrpc { |jr| jr.eth_call({ to: @contract, data: data }, 'latest') }[2..].to_i(16)
+    hex = with_jsonrpc { |jr| jr.eth_call({ to: @contract, data: data }, 'latest') }
+    unless /^0x[0-9a-fA-F]{64}$/.match?(hex)
+      raise(
+        StandardError,
+        "The #{@contract} contract in chain #{@chain} answered #{hex.inspect} instead of " \
+        'a 32-byte word, it may not be an ERC20 contract at all'
+      )
+    end
+    b = hex[2..].to_i(16)
     log_it(:debug, "The balance of #{address} is #{b} ERC20 tokens")
     b
   end
@@ -148,7 +162,11 @@ class ERC20::Wallet
     raise(ArgumentError, 'Address can\'t be nil') unless address
     raise(ArgumentError, 'Address must be a String') unless address.is_a?(String)
     raise(ArgumentError, 'Invalid format of the address') unless /^0x[0-9a-fA-F]{40}$/.match?(address)
-    b = with_jsonrpc { |jr| jr.eth_getBalance(address, 'latest') }[2..].to_i(16)
+    hex = with_jsonrpc { |jr| jr.eth_getBalance(address, 'latest') }
+    unless /^0x[0-9a-fA-F]+$/.match?(hex)
+      raise(StandardError, "The node answered #{hex.inspect} instead of a hex quantity, for the balance of #{address}")
+    end
+    b = hex[2..].to_i(16)
     log_it(:debug, "The balance of #{address} is #{b} ETHs")
     b
   end
