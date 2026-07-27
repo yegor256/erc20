@@ -29,7 +29,7 @@ class TestWallet < ERC20::Test
   def test_logs_to_stdout
     WebMock.disable_net_connect!
     stub_request(:post, 'https://example.org/').to_return(
-      body: { jsonrpc: '2.0', id: 42, result: '0x1F1F1F' }.to_json,
+      body: { jsonrpc: '2.0', id: 42, result: format('0x%064x', 0x1F1F1F) }.to_json,
       headers: { 'Content-Type' => 'application/json' }
     )
     ERC20::Wallet.new(
@@ -47,7 +47,43 @@ class TestWallet < ERC20::Test
 
   CHALLENGE = '<!DOCTYPE html><html><head><title>Just a moment...</title></head></html>'
 
-  GOOD_JSON = { jsonrpc: '2.0', id: 42, result: '0x1F1F1F' }.to_json
+  GOOD_JSON = { jsonrpc: '2.0', id: 42, result: format('0x%064x', 0x1F1F1F) }.to_json
+
+  def test_rejects_empty_result_of_balance
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      body: { jsonrpc: '2.0', id: 42, result: '0x' }.to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
+    assert_raises(StandardError) do
+      w.balance(Eth::Key.new(priv: JEFF).address.to_s)
+    end
+  end
+
+  def test_rejects_empty_result_of_eth_balance
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      body: { jsonrpc: '2.0', id: 42, result: '0x' }.to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
+    assert_raises(StandardError) do
+      w.eth_balance(Eth::Key.new(priv: JEFF).address.to_s)
+    end
+  end
+
+  def test_rejects_truncated_result_of_balance
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      body: { jsonrpc: '2.0', id: 42, result: '0x1F1F1F' }.to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
+    assert_raises(StandardError) do
+      w.balance(Eth::Key.new(priv: JEFF).address.to_s)
+    end
+  end
 
   def test_retries_on_transient_non_json_response
     WebMock.disable_net_connect!
