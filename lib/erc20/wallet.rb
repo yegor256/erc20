@@ -72,7 +72,7 @@ class ERC20::Wallet
   # @param [String] ws_path The path in the connection URL, for Websockets
   # @param [Boolean] ssl Should we use SSL (for https and wss)
   # @param [String] proxy The URL of the proxy to use
-  # @param [Integer] attempts How many times to retry a failed HTTP RPC call before giving up
+  # @param [Integer] attempts How many times to try every HTTP RPC endpoint before giving up
   # @param [Array<String>] fallbacks Alternative HTTP RPC endpoint URLs to try when the primary one fails
   # @param [Object] log The destination for logs
   def initialize(
@@ -578,17 +578,18 @@ class ERC20::Wallet
         end
     end
     endpoints = [url.to_s] + @fallbacks
-    attempt = 0
+    budget = @attempts * endpoints.size
+    tried = 0
     begin
-      attempt += 1
-      u = URI.parse(endpoints[(attempt - 1) % endpoints.size])
+      u = URI.parse(endpoints[tried % endpoints.size])
+      tried += 1
       elapsed(@log, good: "Talked to #{u.host}:#{u.port}") do
         yield(JSONRPC::Client.new(u.to_s, opts))
       end
     rescue StandardError => e
-      raise if attempt >= @attempts
-      pause = 2**(attempt - 1)
-      log_it(:debug, "Attempt #{attempt}/#{@attempts} to #{u.host} failed (#{e.class}), retrying in #{pause}s")
+      raise if tried >= budget
+      pause = (tried % endpoints.size).zero? ? 2**((tried / endpoints.size) - 1) : 0
+      log_it(:debug, "Attempt #{tried}/#{budget} to #{u.host} failed (#{e.class}), retrying in #{pause}s")
       sleep(pause)
       retry
     end

@@ -126,6 +126,63 @@ class TestWallet < ERC20::Test
     assert_equal(0x1F1F1F, w.balance(Eth::Key.new(priv: JEFF).address.to_s))
   end
 
+  def test_falls_back_with_a_single_attempt
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      status: 200, body: CHALLENGE, headers: { 'Content-Type' => 'text/html' }
+    )
+    stub_request(:post, 'https://backup.example.org/').to_return(
+      status: 200, body: GOOD_JSON, headers: { 'Content-Type' => 'application/json' }
+    )
+    w = ERC20::Wallet.new(
+      host: 'example.org', http_path: '/',
+      fallbacks: ['https://backup.example.org/'], log: Loog::NULL
+    )
+    w.define_singleton_method(:sleep) { |*| nil }
+    assert_equal(0x1F1F1F, w.balance(Eth::Key.new(priv: JEFF).address.to_s))
+  end
+
+  def test_reaches_the_last_fallback
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      status: 200, body: CHALLENGE, headers: { 'Content-Type' => 'text/html' }
+    )
+    stub_request(:post, 'https://first.example.org/').to_return(
+      status: 200, body: CHALLENGE, headers: { 'Content-Type' => 'text/html' }
+    )
+    stub_request(:post, 'https://second.example.org/').to_return(
+      status: 200, body: GOOD_JSON, headers: { 'Content-Type' => 'application/json' }
+    )
+    w = ERC20::Wallet.new(
+      host: 'example.org', http_path: '/',
+      fallbacks: ['https://first.example.org/', 'https://second.example.org/'], log: Loog::NULL
+    )
+    w.define_singleton_method(:sleep) { |*| nil }
+    assert_equal(0x1F1F1F, w.balance(Eth::Key.new(priv: JEFF).address.to_s))
+  end
+
+  def test_spends_all_attempts_on_every_endpoint
+    WebMock.disable_net_connect!
+    seen = []
+    ['https://example.org/', 'https://backup.example.org/'].each do |endpoint|
+      stub_request(:post, endpoint).to_return do |_|
+        seen.append(endpoint)
+        { status: 200, body: CHALLENGE, headers: { 'Content-Type' => 'text/html' } }
+      end
+    end
+    w = ERC20::Wallet.new(
+      host: 'example.org', http_path: '/',
+      fallbacks: ['https://backup.example.org/'], attempts: 3, log: Loog::NULL
+    )
+    w.define_singleton_method(:sleep) { |*| nil }
+    begin
+      w.balance(Eth::Key.new(priv: JEFF).address.to_s)
+    rescue StandardError => e
+      Loog::NULL.debug(e.message)
+    end
+    assert_equal(6, seen.size)
+  end
+
   def test_rejects_non_array_fallbacks
     WebMock.disable_net_connect!
     assert_raises(ArgumentError) do
