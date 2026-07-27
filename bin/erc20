@@ -151,10 +151,10 @@ class Bin < Thor
       amount = amount.to_i
       log.debug("The token amount equals to #{amount} ERC20 tokens (as provided)")
     elsif /^[0-9]+(\.[0-9]+)?usdt$/.match?(amount)
-      amount = (amount.gsub(/usdt$/, '').to_f * 1_000_000).to_i
+      amount = units(amount.gsub(/usdt$/, ''), 1_000_000)
       log.debug("The USDT amount equals to #{amount} ERC20 tokens")
     elsif /^\$[0-9]+(\.[0-9]+)?$/.match?(amount)
-      amount = (amount.gsub(/^\$/, '').to_f * 1_000_000).to_i
+      amount = units(amount.gsub(/^\$/, ''), 1_000_000)
       log.debug("The dollar amount equals to #{amount} ERC20 tokens")
     else
       raise "Can't understand amount: #{amount.inspect}"
@@ -165,15 +165,23 @@ class Bin < Thor
   def wei(amount)
     if /^[0-9]+$/.match?(amount)
       amount.to_i
-    elsif /[0-9]wei$/.match?(amount)
+    elsif /^[0-9]+wei$/.match?(amount)
       amount.gsub(/wei$/, '').to_i
-    elsif /[0-9]gwei$/.match?(amount)
-      (amount.gsub(/gwei$/, '').to_f * 1_000_000_000).to_i
-    elsif /[0-9]eth$/.match?(amount)
-      (amount.gsub(/eth$/, '').to_f * 1_000_000_000_000_000_000).to_i
+    elsif /^[0-9]+(\.[0-9]+)?gwei$/.match?(amount)
+      units(amount.gsub(/gwei$/, ''), 1_000_000_000)
+    elsif /^[0-9]+(\.[0-9]+)?eth$/.match?(amount)
+      units(amount.gsub(/eth$/, ''), 1_000_000_000_000_000_000)
     else
       raise "Can't understand amount: #{amount.inspect}"
     end
+  end
+
+  def units(amount, factor)
+    exact = Rational(amount) * factor
+    unless exact.denominator == 1
+      raise "Amount #{amount.inspect} is too precise, while the smallest unit is 1/#{factor}"
+    end
+    exact.numerator
   end
 end
 

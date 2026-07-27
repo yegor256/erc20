@@ -28,6 +28,10 @@ Feature: Command Line Processing, in Dry Mode
     When I run bin/erc20 with "pay --dry --verbose 46feba063e9b59a8ae0dba68abd39a3cb8f52089e776576d6eb1bb5bfec123d1 0x7232148927F8a580053792f44D4d59d40Fd00ABD 10usdt"
     Then Exit code is zero
 
+  Scenario: ERC20 payment in USDT keeps every token unit
+    When I run bin/erc20 with "pay --dry --verbose 46feba063e9b59a8ae0dba68abd39a3cb8f52089e776576d6eb1bb5bfec123d1 0x7232148927F8a580053792f44D4d59d40Fd00ABD 8.2usdt"
+    Then Stdout contains "Sending 8200000 ERC20 tokens"
+
   Scenario: ETH payment can be sent in wei
     When I run bin/erc20 with "eth_pay --dry --verbose 46feba063e9b59a8ae0dba68abd39a3cb8f52089e776576d6eb1bb5bfec123d1 0x7232148927F8a580053792f44D4d59d40Fd00ABD 10000000"
     Then Exit code is zero
@@ -35,3 +39,7 @@ Feature: Command Line Processing, in Dry Mode
   Scenario: ETH payment can be sent in ETH
     When I run bin/erc20 with "eth_pay --dry --verbose 46feba063e9b59a8ae0dba68abd39a3cb8f52089e776576d6eb1bb5bfec123d1 0x7232148927F8a580053792f44D4d59d40Fd00ABD 1eth"
     Then Exit code is zero
+
+  Scenario: ETH payment smaller than one wei is rejected
+    When I run bin/erc20 with "eth_pay --dry 46feba063e9b59a8ae0dba68abd39a3cb8f52089e776576d6eb1bb5bfec123d1 0x7232148927F8a580053792f44D4d59d40Fd00ABD 0.0000000000000000001eth"
+    Then Exit code is not zero
