@@ -318,6 +318,43 @@ class TestWallet < ERC20::Test
     end
   end
 
+  def test_rejects_amount_above_the_word_maximum
+    WebMock.disable_net_connect!
+    w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
+    assert_raises(ArgumentError) do
+      w.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 2**256, limit: 60_000, price: 1000)
+    end
+  end
+
+  def test_explains_why_a_huge_amount_is_rejected
+    WebMock.disable_net_connect!
+    w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
+    assert_match(
+      /must fit into uint256/,
+      assert_raises(ArgumentError) do
+        w.gas_estimate(Eth::Key.new(priv: JEFF).address.to_s, Eth::Key.new(priv: WALTER).address.to_s, 2**256)
+      end.message
+    )
+  end
+
+  def test_encodes_the_largest_amount_in_a_single_word
+    WebMock.disable_net_connect!
+    data = nil
+    stub_request(:post, 'https://example.org/').to_return do |request|
+      data = JSON.parse(request.body)['params'].first['data']
+      {
+        status: 200,
+        body: { jsonrpc: '2.0', id: 42, result: '0x5208' }.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      }
+    end
+    walter = Eth::Key.new(priv: WALTER).address.to_s
+    ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL).gas_estimate(
+      Eth::Key.new(priv: JEFF).address.to_s, walter, (2**256) - 1
+    )
+    assert_equal("0xa9059cbb000000000000000000000000#{walter.downcase[2..]}#{'f' * 64}", data)
+  end
+
   def test_rejects_gas_limit_below_minimum
     WebMock.disable_net_connect!
     w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
