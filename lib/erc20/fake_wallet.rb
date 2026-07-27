@@ -66,10 +66,13 @@ class ERC20::FakeWallet
 
   # Get ERC20 amount (in tokens) that was sent in the given transaction.
   #
-  # @param [String] _txn Hex of transaction
-  # @return [Integer] Balance, in ERC20 tokens
-  def sum_of(_txn)
-    42_000_000
+  # @param [String] txn Hex of transaction
+  # @param [String] to Public key of the receiver, in hex, starting from '0x'
+  # @return [Integer] Amount, in ERC20 tokens
+  def sum_of(txn, to: nil)
+    tokens = 42_000_000
+    @history << { method: :sum_of, txn:, to:, result: tokens }
+    tokens
   end
 
   # How many gas units are required to send an ERC20 transaction.

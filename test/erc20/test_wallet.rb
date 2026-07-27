@@ -167,6 +167,62 @@ class TestWallet < ERC20::Test
     assert_equal(222, events.first[:amount])
   end
 
+  def receipt(transfers, status: '0x1')
+    {
+      jsonrpc: '2.0',
+      id: 42,
+      result: {
+        status:,
+        logs: transfers.map do |amount, to|
+          {
+            address: ERC20::Wallet::USDT,
+            data: format('0x%064x', amount),
+            topics: [
+              ERC20::Wallet::TRANSFER,
+              "0x000000000000000000000000#{Eth::Key.new(priv: JEFF).address.to_s.downcase[2..]}",
+              "0x000000000000000000000000#{to.downcase[2..]}"
+            ]
+          }
+        end
+      }
+    }.to_json
+  end
+
+  def test_sums_only_transfers_to_the_receiver
+    WebMock.disable_net_connect!
+    walter = Eth::Key.new(priv: WALTER).address.to_s
+    stub_request(:post, 'https://example.org/').to_return(
+      body: receipt([[100, Eth::Key.new(priv: JEFF).address.to_s], [222, walter], [333, walter]]),
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    assert_equal(
+      555,
+      ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL).sum_of("0x#{'a' * 64}", to: walter)
+    )
+  end
+
+  def test_rejects_transaction_with_many_transfers
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      body: receipt([[100, Eth::Key.new(priv: JEFF).address.to_s], [222, Eth::Key.new(priv: WALTER).address.to_s]]),
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    assert_raises(StandardError) do
+      ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL).sum_of("0x#{'a' * 64}")
+    end
+  end
+
+  def test_rejects_reverted_transaction
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      body: receipt([[100, Eth::Key.new(priv: WALTER).address.to_s]], status: '0x0'),
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    assert_raises(StandardError) do
+      ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL).sum_of("0x#{'a' * 64}")
+    end
+  end
+
   def test_rejects_gas_limit_below_minimum
     WebMock.disable_net_connect!
     w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
