@@ -559,6 +559,99 @@ class TestWallet < ERC20::Test
     assert_equal("0xa9059cbb000000000000000000000000#{walter.downcase[2..]}#{'f' * 64}", data)
   end
 
+  def signed
+    WebMock.disable_net_connect!
+    sent = []
+    stub_request(:post, 'https://example.org/').to_return do |request|
+      call = JSON.parse(request.body)
+      sent.append(call['params'].first) if call['method'] == 'eth_sendRawTransaction'
+      {
+        status: 200,
+        body: {
+          jsonrpc: '2.0', id: call['id'],
+          result:
+            case call['method']
+            when 'eth_getBlockByNumber' then { 'baseFeePerGas' => '0x4a817c800' }
+            when 'eth_sendRawTransaction' then "0x#{'f' * 64}"
+            else '0xfde8'
+            end
+        }.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      }
+    end
+    yield(ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL))
+    Eth::Tx.decode(sent.last)
+  end
+
+  def test_pays_with_a_dynamic_fee_transaction
+    assert_kind_of(
+      Eth::Tx::Eip1559,
+      signed { |w| w.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000) },
+      'A legacy transaction gives away the entire gas price, thus it cannot be used'
+    )
+  end
+
+  def test_pays_eth_with_a_dynamic_fee_txn
+    assert_kind_of(
+      Eth::Tx::Eip1559,
+      signed { |w| w.eth_pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000) },
+      'A legacy transaction gives away the entire gas price, thus it cannot be used'
+    )
+  end
+
+  def test_caps_the_fee_at_the_gas_price
+    assert_equal(
+      41_000_000_000,
+      signed { |w| w.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000) }.max_fee_per_gas,
+      'The doubled base fee cannot be anything but a ceiling'
+    )
+  end
+
+  def test_tips_the_proposer_a_gwei
+    assert_equal(
+      ERC20::Wallet::GAS_PRICE_TIP,
+      signed { |w| w.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000) }.max_priority_fee_per_gas,
+      'The tip cannot swallow the headroom left for the growth of the base fee'
+    )
+  end
+
+  def test_never_tips_above_the_fee_cap
+    assert_equal(
+      1000,
+      signed do |w|
+        w.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000, price: 1000)
+      end.max_priority_fee_per_gas,
+      'A tip above the fee cap cannot be accepted by any node'
+    )
+  end
+
+  def test_rejects_a_nil_gas_price
+    WebMock.disable_net_connect!
+    w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
+    assert_match(
+      /Gas price can't be nil/,
+      assert_raises(ArgumentError) do
+        w.eth_pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000, price: nil)
+      end.message,
+      'A payment without a gas price cannot reach the signing of the transaction'
+    )
+  end
+
+  def test_rejects_a_chain_without_a_base_fee
+    WebMock.disable_net_connect!
+    stub_request(:post, 'https://example.org/').to_return(
+      body: { jsonrpc: '2.0', id: 42, result: { 'number' => '0x1' } }.to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    assert_match(
+      /baseFeePerGas/,
+      assert_raises(StandardError) do
+        ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL).gas_price
+      end.message,
+      'A chain without EIP-1559 cannot fail deep inside with an obscure message'
+    )
+  end
+
   def test_rejects_gas_limit_below_minimum
     WebMock.disable_net_connect!
     w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
