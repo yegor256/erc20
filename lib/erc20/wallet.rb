@@ -262,6 +262,10 @@ class ERC20::Wallet
   # price mineable, we double the base fee (a buffer that absorbs several blocks
   # of base-fee growth) and add a priority tip (+GAS_PRICE_TIP+).
   #
+  # The price is a ceiling, not a payment: it lands in the +maxFeePerGas+ of a
+  # type-2 transaction, where the network charges only +baseFee + tip+ per gas
+  # unit and refunds the rest of the buffer.
+  #
   # @return [Integer] Price of gas unit, in wei (1 gwei = 0.000000001 ETH)
   def gas_price
     block =
@@ -269,7 +273,9 @@ class ERC20::Wallet
         jr.eth_getBlockByNumber('latest', false)
       end
     raise(StandardError, "Can't get gas price, try again later") if block.nil?
-    base = block['baseFeePerGas'].to_i(16)
+    fee = block['baseFeePerGas']
+    raise(StandardError, 'The latest block has no baseFeePerGas, the chain is not EIP-1559 capable') if fee.nil?
+    base = fee.to_i(16)
     price = (base * 2) + GAS_PRICE_TIP
     log_it(:debug, "The base fee is #{base} wei, the cost of one gas unit is #{price} wei")
     price
@@ -290,11 +296,15 @@ class ERC20::Wallet
   # same signed transaction, which the network either mines once or rejects as
   # already known. Thus, no number of +attempts+ may pay twice.
   #
+  # The transaction is a type-2 one (EIP-1559): the +price+ is the most the
+  # sender agrees to pay per gas unit, while the actual payment is only
+  # +baseFee + GAS_PRICE_TIP+.
+  #
   # @param [String] priv Private key, in hex
   # @param [String] address Public key, in hex
   # @param [Integer] amount The amount of ERC20 tokens to send
   # @param [Integer] limit How much gas you're ready to spend
-  # @param [Integer] price How much gas you pay per computation unit
+  # @param [Integer] price The most you pay per computation unit
   # @return [String] Transaction hash
   def pay(priv, address, amount, limit: nil, price: gas_price)
     raise(ArgumentError, 'Private key can\'t be nil') unless priv
@@ -312,10 +322,9 @@ class ERC20::Wallet
       raise(ArgumentError, "Gas limit #{limit} is below #{Eth::Tx::DEFAULT_GAS_LIMIT}") if limit < Eth::Tx::DEFAULT_GAS_LIMIT
       raise(ArgumentError, "Gas limit #{limit} is above #{Eth::Tx::BLOCK_GAS_LIMIT}") if limit > Eth::Tx::BLOCK_GAS_LIMIT
     end
-    if price
-      raise(ArgumentError, 'Gas price must be an Integer') unless price.is_a?(Integer)
-      raise(ArgumentError, 'Gas price must be a positive Integer') unless price.positive?
-    end
+    raise(ArgumentError, 'Gas price can\'t be nil') unless price
+    raise(ArgumentError, 'Gas price must be an Integer') unless price.is_a?(Integer)
+    raise(ArgumentError, 'Gas price must be a positive Integer') unless price.positive?
     key = Eth::Key.new(priv: priv)
     from = key.address.to_s
     tnx =
@@ -323,7 +332,8 @@ class ERC20::Wallet
         tx = Eth::Tx.new(
           {
             nonce: with_jsonrpc { |jr| jr.eth_getTransactionCount(from, 'pending').to_i(16) },
-            gas_price: price,
+            max_gas_fee: price,
+            priority_fee: tip(price),
             gas_limit: limit || gas_estimate(from, address, amount),
             to: @contract,
             value: 0,
@@ -345,7 +355,7 @@ class ERC20::Wallet
   # @param [String] priv Private key, in hex
   # @param [String] address Public key, in hex
   # @param [Integer] amount The amount of ETH to send
-  # @param [Integer] price How much gas you pay per computation unit
+  # @param [Integer] price The most you pay per computation unit
   # @return [String] Transaction hash
   def eth_pay(priv, address, amount, price: gas_price)
     raise(ArgumentError, 'Private key can\'t be nil') unless priv
@@ -357,10 +367,9 @@ class ERC20::Wallet
     raise(ArgumentError, 'Amount can\'t be nil') unless amount
     raise(ArgumentError, "Amount (#{amount}) must be an Integer") unless amount.is_a?(Integer)
     raise(ArgumentError, "Amount (#{amount}) must be a positive Integer") unless amount.positive?
-    if price
-      raise(ArgumentError, 'Gas price must be an Integer') unless price.is_a?(Integer)
-      raise(ArgumentError, 'Gas price must be a positive Integer') unless price.positive?
-    end
+    raise(ArgumentError, 'Gas price can\'t be nil') unless price
+    raise(ArgumentError, 'Gas price must be an Integer') unless price.is_a?(Integer)
+    raise(ArgumentError, 'Gas price must be a positive Integer') unless price.positive?
     key = Eth::Key.new(priv: priv)
     from = key.address.to_s
     tnx =
@@ -369,7 +378,8 @@ class ERC20::Wallet
           {
             chain_id: @chain,
             nonce: with_jsonrpc { |jr| jr.eth_getTransactionCount(from, 'pending').to_i(16) },
-            gas_price: price,
+            max_gas_fee: price,
+            priority_fee: tip(price),
             gas_limit: 22_000,
             to: address,
             value: amount
@@ -667,6 +677,10 @@ class ERC20::Wallet
       sleep(pause)
       retry
     end
+  end
+
+  def tip(price)
+    [GAS_PRICE_TIP, price].min
   end
 
   def to_pay_data(address, amount)

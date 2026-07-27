@@ -84,7 +84,8 @@ To check the price of a gas unit and the expected cost of a payment:
 # How many gas units required to send this payment:
 units = w.gas_estimate(from, to, amount)
 
-# What is the price of a gas unit, in wei:
+# What is the most a gas unit may cost, in wei (payments are type-2,
+# thus the network charges only the base fee plus the tip):
 price = w.gas_price
 ```
 
