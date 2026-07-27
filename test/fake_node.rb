@@ -15,6 +15,9 @@ require_relative '../lib/erc20/erc20'
 # replies, the second one gets the second group, and so on. When the groups
 # are exhausted, the node stays silent. Every message that arrives is
 # appended to the given file, one per line.
+#
+# A reply that is a String travels to the client verbatim, which is how a
+# test emits a frame that is not valid JSON.
 class ERC20::FakeNode
   def initialize(port, replies, received)
     @port = port
@@ -30,7 +33,7 @@ class ERC20::FakeNode
           File.open(@received, 'a') { |f| f.puts(msg) }
           (@replies[seen] || []).each do |reply|
             # rubocop:disable Style/Send
-            ws.send(JSON.dump(reply))
+            ws.send(reply.is_a?(String) ? reply : JSON.dump(reply))
             # rubocop:enable Style/Send
           end
           seen += 1

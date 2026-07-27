@@ -179,7 +179,7 @@ class ERC20::Test < Minitest::Test
   # messages: the node answers the first message of the wallet with the first
   # group, the second one with the second group, and so on. The block gets the
   # wallet and the name of the file where all messages from the wallet land.
-  def on_websockets(replies)
+  def on_websockets(replies, log: fake_loog)
     Dir.mktmpdir do |home|
       script = File.join(home, 'replies.json')
       File.write(script, JSON.dump(replies))
@@ -193,7 +193,7 @@ class ERC20::Test < Minitest::Test
             true
           end
           yield(
-            ERC20::Wallet.new(host: '127.0.0.1', port:, ws_path: '/', ssl: false, log: fake_loog),
+            ERC20::Wallet.new(host: '127.0.0.1', port:, ws_path: '/', ssl: false, log:),
             received
           )
         ensure

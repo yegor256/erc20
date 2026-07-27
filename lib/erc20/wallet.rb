@@ -404,6 +404,10 @@ class ERC20::Wallet
   # and it is rebuilt on every confirmation. This array is used mostly for
   # testing. It is suggested to always provide an empty array.
   #
+  # When the node answers a subscribe request with an error, the addresses stay
+  # out of +active+, the error goes to the log, and the next subscribe attempt
+  # happens +delay+ seconds later.
+  #
   # A reorganization of the chain may revert a payment that was already mined.
   # The node then re-sends its log with the +removed+ flag set. Such an event
   # is not yielded, since the payment never happened. In +raw+ mode the event
@@ -505,7 +509,10 @@ class ERC20::Wallet
       safe do
         verbose do
           data = to_json(msg)
-          if data['id'] == subscription_id
+          if data['error']
+            active.clear if data['id'] == subscription_id
+            log_it(:error, "Request ##{data['id']} was rejected by #{log_url}: #{data['error']}")
+          elsif data['id'] == subscription_id
             subscription = data['result']
             active.clear
             wanted&.each { |a| active.append(a) }
@@ -563,7 +570,8 @@ class ERC20::Wallet
 
   def to_json(msg)
     JSON.parse(msg.data)
-  rescue StandardError
+  rescue StandardError => e
+    log_it(:error, "Failed to parse a frame of #{msg.data.to_s.length} bytes (#{e.message}): #{msg.data}")
     {}
   end
 

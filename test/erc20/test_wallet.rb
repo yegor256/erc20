@@ -313,6 +313,58 @@ class TestWallet < ERC20::Test
     assert_equal(2, subscribes)
   end
 
+  def rejection
+    [[{ jsonrpc: '2.0', id: 42, error: { code: -32_602, message: 'too many topics' } }]]
+  end
+
+  def test_ignores_a_rejected_subscription
+    WebMock.enable_net_connect!
+    seen = nil
+    on_websockets(rejection) do |wallet|
+      active = []
+      daemon =
+        Thread.new do
+          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase], active, subscription_id: 42) { |_| nil }
+        end
+      sleep(3)
+      seen = active.to_a.dup
+      daemon.kill
+      daemon.join(30)
+    end
+    assert_empty(seen, 'Addresses cannot be active when the node rejects the subscription')
+  end
+
+  def test_retries_a_rejected_subscription
+    WebMock.enable_net_connect!
+    subscribes = 0
+    on_websockets(rejection) do |wallet, received|
+      daemon =
+        Thread.new do
+          wallet.accept([Eth::Key.new(priv: WALTER).address.to_s.downcase], [], subscription_id: 42) { |_| nil }
+        end
+      sleep(4)
+      daemon.kill
+      daemon.join(30)
+      subscribes = File.readlines(received).count { |line| JSON.parse(line)['method'] == 'eth_subscribe' }
+    end
+    assert_operator(subscribes, :>, 1, 'A rejected subscription cannot be the last attempt')
+  end
+
+  def test_complains_about_a_corrupt_frame
+    WebMock.enable_net_connect!
+    buf = Loog::Buffer.new
+    on_websockets([['}not json{']], log: buf) do |wallet|
+      daemon =
+        Thread.new do
+          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase], [], subscription_id: 42) { |_| nil }
+        end
+      wait_for(10) { buf.to_s.include?('not json') }
+      daemon.kill
+      daemon.join(30)
+    end
+    assert_match(/Failed to parse/, buf.to_s, 'A corrupt frame cannot be discarded silently')
+  end
+
   def receipt(transfers, status: '0x1')
     {
       jsonrpc: '2.0',
