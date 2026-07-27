@@ -61,6 +61,9 @@ class ERC20::Wallet
   USDT = '0xdac17f958d2ee523a2206206994597c13d831ec7'
   TRANSFER = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
 
+  MAX_AMOUNT = (2**256) - 1
+  private_constant :MAX_AMOUNT
+
   attr_reader :host, :port, :ssl, :chain, :contract, :ws_path, :http_path
 
   # Constructor.
@@ -232,6 +235,7 @@ class ERC20::Wallet
     raise(ArgumentError, 'Amount can\'t be nil') unless amount
     raise(ArgumentError, "Amount (#{amount}) must be an Integer") unless amount.is_a?(Integer)
     raise(ArgumentError, "Amount (#{amount}) must be a positive Integer") unless amount.positive?
+    raise(ArgumentError, "Amount (#{amount}) must fit into uint256") if amount > MAX_AMOUNT
     gas =
       with_jsonrpc do |jr|
         jr.eth_estimateGas({ from:, to: @contract, data: to_pay_data(to, amount) }, 'latest').to_i(16)
@@ -302,6 +306,7 @@ class ERC20::Wallet
     raise(ArgumentError, 'Amount can\'t be nil') unless amount
     raise(ArgumentError, "Amount (#{amount}) must be an Integer") unless amount.is_a?(Integer)
     raise(ArgumentError, "Amount (#{amount}) must be a positive Integer") unless amount.positive?
+    raise(ArgumentError, "Amount (#{amount}) must fit into uint256") if amount > MAX_AMOUNT
     if limit
       raise(ArgumentError, 'Gas limit must be an Integer') unless limit.is_a?(Integer)
       raise(ArgumentError, "Gas limit #{limit} is below #{Eth::Tx::DEFAULT_GAS_LIMIT}") if limit < Eth::Tx::DEFAULT_GAS_LIMIT
@@ -596,9 +601,7 @@ class ERC20::Wallet
   end
 
   def to_pay_data(address, amount)
-    to_clean = address.downcase.sub(/^0x/, '')
-    amt_hex = amount.to_s(16)
-    "0xa9059cbb#{('0' * (64 - to_clean.size)) + to_clean}#{('0' * (64 - amt_hex.size)) + amt_hex}"
+    "0xa9059cbb#{format('%064x', address.to_i(16))}#{format('%064x', amount)}"
   end
 
   def log_it(method, msg)
