@@ -128,6 +128,45 @@ class TestWallet < ERC20::Test
     assert_equal(1, sent.uniq.size)
   end
 
+  def transfer(amount, removed)
+    {
+      jsonrpc: '2.0',
+      method: 'eth_subscription',
+      params: {
+        subscription: '0x42',
+        result: {
+          address: ERC20::Wallet::USDT,
+          data: format('0x%064x', amount),
+          removed:,
+          topics: [
+            ERC20::Wallet::TRANSFER,
+            "0x000000000000000000000000#{Eth::Key.new(priv: JEFF).address.to_s.downcase[2..]}",
+            "0x000000000000000000000000#{Eth::Key.new(priv: WALTER).address.to_s.downcase[2..]}"
+          ],
+          transactionHash: "0x#{'e' * 64}"
+        }
+      }
+    }
+  end
+
+  def test_ignores_payment_removed_by_reorg
+    WebMock.enable_net_connect!
+    walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
+    events = []
+    on_websockets([[{ jsonrpc: '2.0', id: 42, result: '0x42' }, transfer(111, true), transfer(222, false)]]) do |wallet|
+      daemon =
+        Thread.new do
+          wallet.accept([walter], [], subscription_id: 42) do |e|
+            events.append(e)
+          end
+        end
+      wait_for { !events.empty? }
+      daemon.kill
+      daemon.join(30)
+    end
+    assert_equal(222, events.first[:amount])
+  end
+
   def test_rejects_gas_limit_below_minimum
     WebMock.disable_net_connect!
     w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)
