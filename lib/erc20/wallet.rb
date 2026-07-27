@@ -360,6 +360,16 @@ class ERC20::Wallet
   # This array is used mostly for testing. It is suggested to always provide
   # an empty array.
   #
+  # A reorganization of the chain may revert a payment that was already mined.
+  # The node then re-sends its log with the +removed+ flag set. Such an event
+  # is not yielded, since the payment never happened. In +raw+ mode the event
+  # is yielded as it arrives and the +removed+ flag must be checked by the
+  # consumer.
+  #
+  # Events are yielded with zero confirmations, the moment they arrive from the
+  # node. A payment must not be treated as settled until enough blocks are
+  # mined on top of it.
+  #
   # @param [Array<String>] addresses Addresses to monitor
   # @param [Array] active List of addresses that we are actually listening to
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
@@ -451,6 +461,12 @@ class ERC20::Wallet
             event = data['params']['result']
             if raw
               log_it(:debug, "New event arrived from #{event['address']}")
+              yield(event)
+            elsif event['removed']
+              log_it(
+                :debug,
+                "Payment in #{event['transactionHash']} is reverted by a reorganization of the chain, ignoring it"
+              )
             else
               event = {
                 amount: event['data'].to_i(16),
@@ -463,8 +479,8 @@ class ERC20::Wallet
                 "Payment of #{event[:amount]} tokens arrived at ##{subscription_id} " \
                 "from #{event[:from]} to #{event[:to]} in #{event[:txn]}"
               )
+              yield(event)
             end
-            yield(event)
           end
         end
       end

@@ -10,6 +10,7 @@ gem 'backtrace', '~>0.4', require: false
 gem 'concurrent-ruby', '~>1.2', require: false
 gem 'cucumber', '~>10.0', require: false
 gem 'donce', '~>0.2', require: false
+gem 'em-websocket', '~>0.5', require: false
 gem 'faraday', '~>2.14', require: false
 gem 'loog', '~>0.6', require: false
 gem 'minitest', '~>6.0', require: false

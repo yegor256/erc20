@@ -62,6 +62,9 @@ GEM
       loog (~> 0.6)
       tago (~> 0.1)
     ellipsized (0.3.0)
+    em-websocket (0.5.3)
+      eventmachine (>= 0.12.9)
+      http_parser.rb (~> 0)
     erb (6.0.4)
     eth (0.5.13)
       forwardable (~> 1.3)
@@ -92,6 +95,7 @@ GEM
       rake
     forwardable (1.4.0)
     hashdiff (1.2.1)
+    http_parser.rb (0.8.1)
     json (2.19.5)
     jsonrpc-client (0.1.4)
       faraday
@@ -240,6 +244,7 @@ DEPENDENCIES
   concurrent-ruby (~> 1.2)
   cucumber (~> 10.0)
   donce (~> 0.2)
+  em-websocket (~> 0.5)
   erc20!
   faraday (~> 2.14)
   loog (~> 0.6)

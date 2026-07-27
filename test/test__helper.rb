@@ -26,6 +26,12 @@ unless SimpleCov.running
   end
 end
 
+require 'fileutils'
+require 'json'
+require 'rbconfig'
+require 'socket'
+require 'tmpdir'
+
 require 'minitest/autorun'
 require 'minitest/reporters'
 Minitest::Reporters.use!([Minitest::Reporters::SpecReporter.new])
@@ -144,6 +150,36 @@ class ERC20::Test < Minitest::Test
           Typhoeus::Request.get('https://www.google.com/generate_204', proxy:, timeout: 5).code == 204
         end
         yield(proxy)
+      end
+    end
+  end
+
+  # Run a fake Ethereum node with Websockets, in a separate process, and give
+  # a wallet connected to it. The +replies+ is a list of groups of JSON
+  # messages: the node answers the first message of the wallet with the first
+  # group, the second one with the second group, and so on. The block gets the
+  # wallet and the name of the file where all messages from the wallet land.
+  def on_websockets(replies)
+    Dir.mktmpdir do |home|
+      script = File.join(home, 'replies.json')
+      File.write(script, JSON.dump(replies))
+      received = File.join(home, 'received.txt')
+      FileUtils.touch(received)
+      RandomPort::Pool::SINGLETON.acquire do |port|
+        pid = spawn(RbConfig.ruby, File.join(__dir__, 'fake_node.rb'), port.to_s, script, received, out: File::NULL)
+        begin
+          wait_for do
+            TCPSocket.new('127.0.0.1', port).close
+            true
+          end
+          yield(
+            ERC20::Wallet.new(host: '127.0.0.1', port:, ws_path: '/', ssl: false, log: fake_loog),
+            received
+          )
+        ensure
+          Process.kill('KILL', pid)
+          Process.wait(pid)
+        end
       end
     end
   end
