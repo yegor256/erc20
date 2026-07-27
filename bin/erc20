@@ -43,7 +43,7 @@ class Bin < Thor
   class_option :proxy, type: :string,
     desc: 'HTTP/S proxy for all requests, e.g. "localhost:3128"'
   class_option :attempts, type: :numeric, default: 1,
-    desc: 'How many times should we try before failing'
+    desc: 'How many times should we try every endpoint before failing'
   class_option :fallbacks, type: :array,
     default: ['https://ethereum.publicnode.com', 'https://eth.drpc.org', 'https://rpc.ankr.com/eth'],
     desc: 'Fallback HTTP RPC endpoint URLs to try when the primary host fails'

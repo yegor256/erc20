@@ -40,7 +40,7 @@ w = ERC20::Wallet.new(
   host: 'mainnet.infura.io',
   http_path: '/v3/<your-infura-key>',
   ws_path: '/ws/v3/<your-infura-key>',
-  attempts: 3, # retry failed HTTP RPC calls up to 3 times, with backoff
+  attempts: 3, # try every endpoint up to 3 times, with backoff
   fallbacks: ['https://eth.drpc.org'], # alternative RPC endpoints to try
   log: $stdout
 )
