@@ -155,26 +155,47 @@ class ERC20::Wallet
 
   # Get ERC20 amount (in tokens) that was sent in the given transaction.
   #
+  # One transaction may carry many transfers of the same token: batch payouts,
+  # multisend contracts, swaps, and fee splits all do that. When the +to+ is
+  # given, only the transfers to that address are counted and their sum is
+  # returned. When it is not given and the transaction carries more than one
+  # transfer, the amount is ambiguous and an error is raised.
+  #
   # @param [String] txn Hex of transaction
-  # @return [Integer] Balance, in ERC20 tokens
-  def sum_of(txn)
+  # @param [String] to Public key of the receiver, in hex, starting from '0x'
+  # @return [Integer] Amount, in ERC20 tokens
+  def sum_of(txn, to: nil)
     raise(ArgumentError, 'Transaction hash can\'t be nil') unless txn
     raise(ArgumentError, 'Transaction hash must be a String') unless txn.is_a?(String)
     raise(ArgumentError, 'Invalid format of the transaction hash') unless /^0x[0-9a-fA-F]{64}$/.match?(txn)
+    unless to.nil?
+      raise(ArgumentError, 'Address must be a String') unless to.is_a?(String)
+      raise(ArgumentError, 'Invalid format of the address') unless /^0x[0-9a-fA-F]{40}$/.match?(to)
+    end
     receipt =
       with_jsonrpc do |jr|
         jr.eth_getTransactionReceipt(txn)
       end
     raise(StandardError, "Transaction not found: #{txn}") if receipt.nil?
-    logs = receipt['logs'] || []
-    logs.each do |log|
-      next unless log['topics'] && log['topics'][0] == TRANSFER
-      next unless log['address'].downcase == @contract.downcase
-      amount = log['data'].to_i(16)
-      log_it(:debug, "Found transfer of #{amount} tokens in transaction #{txn}")
-      return amount
+    raise(StandardError, "Transaction #{txn} is reverted, its status is #{receipt['status']}") \
+      unless receipt['status'] == '0x1'
+    amounts =
+      (receipt['logs'] || []).filter_map do |log|
+        next unless log['topics'] && log['topics'][0] == TRANSFER
+        next unless log['address'].downcase == @contract.downcase
+        next unless to.nil? || log['topics'][2].to_s.downcase == "0x000000000000000000000000#{to[2..].downcase}"
+        log['data'].to_i(16)
+      end
+    raise(StandardError, "No transfer event found in transaction #{txn}") if amounts.empty?
+    if to.nil? && amounts.size > 1
+      raise(
+        StandardError,
+        "Transaction #{txn} carries #{amounts.size} transfers, tell me the receiving address to pick the right ones"
+      )
     end
-    raise(StandardError, "No transfer event found in transaction #{txn}")
+    sum = amounts.sum
+    log_it(:debug, "Found transfer of #{sum} tokens in transaction #{txn}")
+    sum
   end
 
   # How many gas units are required to send an ERC20 transaction.
