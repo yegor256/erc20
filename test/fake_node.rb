@@ -17,7 +17,8 @@ require_relative '../lib/erc20/erc20'
 # appended to the given file, one per line.
 #
 # A reply that is a String travels to the client verbatim, which is how a
-# test emits a frame that is not valid JSON.
+# test emits a frame that is not valid JSON. A reply with the +id+ of "echo"
+# gets the +id+ of the message it answers, the way a real node does it.
 class ERC20::FakeNode
   def initialize(port, replies, received)
     @port = port
@@ -33,13 +34,21 @@ class ERC20::FakeNode
           File.open(@received, 'a') { |f| f.puts(msg) }
           (@replies[seen] || []).each do |reply|
             # rubocop:disable Style/Send
-            ws.send(reply.is_a?(String) ? reply : JSON.dump(reply))
+            ws.send(to_frame(reply, msg))
             # rubocop:enable Style/Send
           end
           seen += 1
         end
       end
     end
+  end
+
+  private
+
+  def to_frame(reply, msg)
+    return reply if reply.is_a?(String)
+    reply = reply.merge('id' => JSON.parse(msg)['id']) if reply['id'] == 'echo'
+    JSON.dump(reply)
   end
 end
 

@@ -223,23 +223,29 @@ class TestWallet < ERC20::Test
     assert_equal(1, sent.uniq.size)
   end
 
+  def to_log(amount, removed: false, block: '0x10', index: '0x3')
+    {
+      address: ERC20::Wallet::USDT,
+      blockNumber: block,
+      data: format('0x%064x', amount),
+      logIndex: index,
+      removed:,
+      topics: [
+        ERC20::Wallet::TRANSFER,
+        "0x000000000000000000000000#{Eth::Key.new(priv: JEFF).address.to_s.downcase[2..]}",
+        "0x000000000000000000000000#{Eth::Key.new(priv: WALTER).address.to_s.downcase[2..]}"
+      ],
+      transactionHash: "0x#{'e' * 64}"
+    }
+  end
+
   def transfer(amount, removed)
     {
       jsonrpc: '2.0',
       method: 'eth_subscription',
       params: {
         subscription: '0x42',
-        result: {
-          address: ERC20::Wallet::USDT,
-          data: format('0x%064x', amount),
-          removed:,
-          topics: [
-            ERC20::Wallet::TRANSFER,
-            "0x000000000000000000000000#{Eth::Key.new(priv: JEFF).address.to_s.downcase[2..]}",
-            "0x000000000000000000000000#{Eth::Key.new(priv: WALTER).address.to_s.downcase[2..]}"
-          ],
-          transactionHash: "0x#{'e' * 64}"
-        }
+        result: to_log(amount, removed:)
       }
     }
   end
@@ -311,6 +317,101 @@ class TestWallet < ERC20::Test
       subscribes = File.readlines(received).count { |line| JSON.parse(line)['method'] == 'eth_subscribe' }
     end
     assert_equal(2, subscribes)
+  end
+
+  def test_yields_a_complete_payment
+    WebMock.enable_net_connect!
+    event = nil
+    on_websockets([[{ jsonrpc: '2.0', id: 42, result: '0x42' }, transfer(555, false)]]) do |wallet|
+      daemon =
+        Thread.new do
+          wallet.accept([Eth::Key.new(priv: WALTER).address.to_s.downcase], [], subscription_id: 42) do |e|
+            event = e
+          end
+        end
+      wait_for(10) { event }
+      daemon.kill
+      daemon.join(30)
+    end
+    assert_equal(
+      {
+        amount: 555,
+        block: 16,
+        from: Eth::Key.new(priv: JEFF).address.to_s.downcase,
+        index: 3,
+        to: Eth::Key.new(priv: WALTER).address.to_s.downcase,
+        txn: "0x#{'e' * 64}"
+      },
+      event
+    )
+  end
+
+  def test_complains_when_the_block_fails
+    WebMock.enable_net_connect!
+    buf = Loog::Buffer.new
+    on_websockets([[{ jsonrpc: '2.0', id: 42, result: '0x42' }, transfer(777, false)]], log: buf) do |wallet|
+      daemon =
+        Thread.new do
+          wallet.accept([Eth::Key.new(priv: WALTER).address.to_s.downcase], [], subscription_id: 42) do |_|
+            raise(StandardError, 'The database is down')
+          end
+        end
+      wait_for(10) { buf.to_s.include?('is lost') }
+      daemon.kill
+      daemon.join(30)
+    end
+    assert_match(/#{'e' * 64}, the event is lost/, buf.to_s, 'A lost payment cannot stay unnamed in the log')
+  end
+
+  def reconnection
+    [
+      [{ jsonrpc: '2.0', id: 'echo', result: '0xaaa' }, transfer(555, false)],
+      [{ jsonrpc: '2.0', id: 'echo', result: [to_log(888, block: '0x20', index: '0x1')] }]
+    ]
+  end
+
+  def test_asks_for_the_logs_of_the_gap
+    WebMock.enable_net_connect!
+    sent = []
+    on_websockets(reconnection) do |wallet, received, reboot|
+      events = []
+      daemon =
+        Thread.new do
+          wallet.accept([Eth::Key.new(priv: WALTER).address.to_s.downcase], [], subscription_id: 42) do |e|
+            events.append(e)
+          end
+        end
+      wait_for(10) { !events.empty? }
+      reboot.call
+      wait_for(20) do
+        sent = File.readlines(received).map { |line| JSON.parse(line) }
+        sent.any? { |m| m['method'] == 'eth_getLogs' }
+      end
+      daemon.kill
+      daemon.join(30)
+    end
+    assert_equal('0x11', sent.find { |m| m['method'] == 'eth_getLogs' }['params'].first['fromBlock'])
+  end
+
+  def test_yields_the_payment_missed_while_offline
+    WebMock.enable_net_connect!
+    missed = nil
+    on_websockets(reconnection) do |wallet, _received, reboot|
+      events = []
+      daemon =
+        Thread.new do
+          wallet.accept([Eth::Key.new(priv: WALTER).address.to_s.downcase], [], subscription_id: 42) do |e|
+            events.append(e)
+          end
+        end
+      wait_for(10) { !events.empty? }
+      reboot.call
+      wait_for(20) { events.any? { |e| e[:amount] == 888 } }
+      missed = events.find { |e| e[:amount] == 888 }
+      daemon.kill
+      daemon.join(30)
+    end
+    assert_equal(32, missed[:block], 'A payment mined during the outage cannot stay undelivered')
   end
 
   def rejection

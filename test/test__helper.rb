@@ -178,7 +178,9 @@ class ERC20::Test < Minitest::Test
   # a wallet connected to it. The +replies+ is a list of groups of JSON
   # messages: the node answers the first message of the wallet with the first
   # group, the second one with the second group, and so on. The block gets the
-  # wallet and the name of the file where all messages from the wallet land.
+  # wallet, the name of the file where all messages from the wallet land, and
+  # a lambda that kills the node and starts a new one on the same port, in
+  # order to break the connection the way a real provider does.
   def on_websockets(replies, log: fake_loog)
     Dir.mktmpdir do |home|
       script = File.join(home, 'replies.json')
@@ -186,19 +188,29 @@ class ERC20::Test < Minitest::Test
       received = File.join(home, 'received.txt')
       FileUtils.touch(received)
       RandomPort::Pool::SINGLETON.acquire do |port|
-        pid = spawn(RbConfig.ruby, File.join(__dir__, 'fake_node.rb'), port.to_s, script, received, out: File::NULL)
-        begin
-          wait_for do
-            TCPSocket.new('127.0.0.1', port).close
-            true
+        pids = []
+        node = [RbConfig.ruby, File.join(__dir__, 'fake_node.rb'), port.to_s, script, received]
+        reboot =
+          lambda do
+            pids.each { |pid| Process.kill('KILL', pid) }
+            pids.append(spawn(*node, out: File::NULL))
+            wait_for do
+              TCPSocket.new('127.0.0.1', port).close
+              true
+            end
           end
+        reboot.call
+        begin
           yield(
             ERC20::Wallet.new(host: '127.0.0.1', port:, ws_path: '/', ssl: false, log:),
-            received
+            received,
+            reboot
           )
         ensure
-          Process.kill('KILL', pid)
-          Process.wait(pid)
+          pids.each do |pid|
+            Process.kill('KILL', pid)
+            Process.wait(pid)
+          end
         end
       end
     end
