@@ -102,6 +102,32 @@ class TestWallet < ERC20::Test
     end
   end
 
+  def test_broadcasts_identical_transaction_on_retry
+    WebMock.disable_net_connect!
+    sent = []
+    stub_request(:post, 'https://example.org/').to_return do |request|
+      call = JSON.parse(request.body)
+      if call['method'] == 'eth_sendRawTransaction'
+        sent.append(call['params'].first)
+        next { status: 200, body: CHALLENGE, headers: { 'Content-Type' => 'text/html' } } if sent.size == 1
+        next {
+          status: 200,
+          body: { jsonrpc: '2.0', id: call['id'], result: "0x#{'f' * 64}" }.to_json,
+          headers: { 'Content-Type' => 'application/json' }
+        }
+      end
+      {
+        status: 200,
+        body: { jsonrpc: '2.0', id: call['id'], result: "0x#{sent.size}" }.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      }
+    end
+    w = ERC20::Wallet.new(host: 'example.org', http_path: '/', attempts: 3, log: Loog::NULL)
+    w.define_singleton_method(:sleep) { |*| nil }
+    w.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000, limit: 60_000, price: 1000)
+    assert_equal(1, sent.uniq.size)
+  end
+
   def test_rejects_gas_limit_below_minimum
     WebMock.disable_net_connect!
     w = ERC20::Wallet.new(host: 'example.org', http_path: '/', log: Loog::NULL)

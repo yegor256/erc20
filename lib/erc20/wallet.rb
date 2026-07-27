@@ -242,6 +242,11 @@ class ERC20::Wallet
   # decrease your balance and increase the recipient's balance. This requires more
   # gas than ETH transfers since it involves executing contract code.
   #
+  # The nonce is fetched and the transaction is signed before the broadcast,
+  # outside of the retry loop. A broadcast that fails is repeated with the very
+  # same signed transaction, which the network either mines once or rejects as
+  # already known. Thus, no number of +attempts+ may pay twice.
+  #
   # @param [String] priv Private key, in hex
   # @param [String] address Public key, in hex
   # @param [Integer] amount The amount of ERC20 tokens to send
@@ -271,23 +276,21 @@ class ERC20::Wallet
     from = key.address.to_s
     tnx =
       @mutex.synchronize do
-        with_jsonrpc do |jr|
-          tx = Eth::Tx.new(
-            {
-              nonce: jr.eth_getTransactionCount(from, 'pending').to_i(16),
-              gas_price: price,
-              gas_limit: limit || gas_estimate(from, address, amount),
-              to: @contract,
-              value: 0,
-              data: to_pay_data(address, amount),
-              chain_id: @chain
-            }
-          )
-          tx.sign(key)
-          hex = "0x#{tx.hex}"
-          log_it(:debug, "Sending ERC20 transaction #{hex}")
-          jr.eth_sendRawTransaction(hex)
-        end
+        tx = Eth::Tx.new(
+          {
+            nonce: with_jsonrpc { |jr| jr.eth_getTransactionCount(from, 'pending').to_i(16) },
+            gas_price: price,
+            gas_limit: limit || gas_estimate(from, address, amount),
+            to: @contract,
+            value: 0,
+            data: to_pay_data(address, amount),
+            chain_id: @chain
+          }
+        )
+        tx.sign(key)
+        hex = "0x#{tx.hex}"
+        log_it(:debug, "Sending ERC20 transaction #{hex}")
+        with_jsonrpc { |jr| jr.eth_sendRawTransaction(hex) }
       end
     log_it(:debug, "Sent #{amount} ERC20 tokens from #{from} to #{address}: #{tnx}")
     tnx.downcase
@@ -318,22 +321,20 @@ class ERC20::Wallet
     from = key.address.to_s
     tnx =
       @mutex.synchronize do
-        with_jsonrpc do |jr|
-          tx = Eth::Tx.new(
-            {
-              chain_id: @chain,
-              nonce: jr.eth_getTransactionCount(from, 'pending').to_i(16),
-              gas_price: price,
-              gas_limit: 22_000,
-              to: address,
-              value: amount
-            }
-          )
-          tx.sign(key)
-          hex = "0x#{tx.hex}"
-          log_it(:debug, "Sending ETH transaction #{hex}")
-          jr.eth_sendRawTransaction(hex)
-        end
+        tx = Eth::Tx.new(
+          {
+            chain_id: @chain,
+            nonce: with_jsonrpc { |jr| jr.eth_getTransactionCount(from, 'pending').to_i(16) },
+            gas_price: price,
+            gas_limit: 22_000,
+            to: address,
+            value: amount
+          }
+        )
+        tx.sign(key)
+        hex = "0x#{tx.hex}"
+        log_it(:debug, "Sending ETH transaction #{hex}")
+        with_jsonrpc { |jr| jr.eth_sendRawTransaction(hex) }
       end
     log_it(:debug, "Sent #{amount} ETHs from #{from} to #{address}: #{tnx}")
     tnx.downcase
