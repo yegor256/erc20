@@ -399,10 +399,10 @@ class ERC20::Wallet
   # called every +delay+ seconds. It is expected that it returns the list
   # of Ethereum public addresses that must be monitored.
   #
-  # The +active+ must have +append()+ and +to_a()+ implemented. This array
-  # maintains the list of addresses that were mentioned in incoming transactions.
-  # This array is used mostly for testing. It is suggested to always provide
-  # an empty array.
+  # The +active+ must have +append()+, +clear()+ and +to_a()+ implemented. This
+  # array holds the addresses that the node has confirmed a subscription for,
+  # and it is rebuilt on every confirmation. This array is used mostly for
+  # testing. It is suggested to always provide an empty array.
   #
   # A reorganization of the chain may revert a payment that was already mined.
   # The node then re-sends its log with the +removed+ flag set. Such an event
@@ -450,6 +450,8 @@ class ERC20::Wallet
     log_url = "ws#{'s' if @ssl}://#{u.hostname}:#{u.port}"
     ws = Faye::WebSocket::Client.new(u.to_s, [], proxy: @proxy ? { origin: @proxy } : {}, ping: 60)
     timer = nil
+    subscription = nil
+    wanted = nil
     ws.on(:open) do
       safe do
         verbose do
@@ -458,6 +460,19 @@ class ERC20::Wallet
             EventMachine.add_periodic_timer(delay) do
               next if active.to_a.sort == addresses.to_a.sort
               # rubocop:disable Style/Send
+              if subscription
+                ws.send(
+                  {
+                    jsonrpc: '2.0',
+                    id: subscription_id + 1,
+                    method: 'eth_unsubscribe',
+                    params: [subscription]
+                  }.to_json
+                )
+                log_it(:debug, "Requested to unsubscribe ##{subscription_id} from #{subscription}")
+                subscription = nil
+              end
+              wanted = addresses.to_a.dup
               ws.send(
                 {
                   jsonrpc: '2.0',
@@ -470,7 +485,7 @@ class ERC20::Wallet
                       topics: [
                         '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
                         nil,
-                        addresses.to_a.map { |a| "0x000000000000000000000000#{a[2..]}" }
+                        wanted.map { |a| "0x000000000000000000000000#{a[2..]}" }
                       ]
                     }
                   ]
@@ -479,8 +494,8 @@ class ERC20::Wallet
               # rubocop:enable Style/Send
               log_it(
                 :debug,
-                "Requested to subscribe ##{subscription_id} to #{addresses.to_a.size} addresses: " \
-                "#{addresses.to_a.map { |a| a[0..6] }.join(', ')}"
+                "Requested to subscribe ##{subscription_id} to #{wanted.size} addresses: " \
+                "#{wanted.map { |a| a[0..6] }.join(', ')}"
               )
             end
         end
@@ -490,12 +505,10 @@ class ERC20::Wallet
       safe do
         verbose do
           data = to_json(msg)
-          if data['id']
-            before = active.to_a.uniq
-            addresses.to_a.each do |a|
-              next if before.include?(a)
-              active.append(a)
-            end
+          if data['id'] == subscription_id
+            subscription = data['result']
+            active.clear
+            wanted&.each { |a| active.append(a) }
             log_it(
               :debug,
               "Subscribed ##{subscription_id} to #{active.to_a.size} addresses at #{log_url}: " \

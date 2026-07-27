@@ -262,6 +262,57 @@ class TestWallet < ERC20::Test
     assert_equal(222, events.first[:amount])
   end
 
+  def confirmations
+    [
+      [{ jsonrpc: '2.0', id: 42, result: '0xaaa' }],
+      [{ jsonrpc: '2.0', id: 43, result: true }],
+      [{ jsonrpc: '2.0', id: 42, result: '0xbbb' }]
+    ]
+  end
+
+  def test_unsubscribes_from_the_previous_subscription
+    WebMock.enable_net_connect!
+    addresses = [Eth::Key.new(priv: JEFF).address.to_s.downcase]
+    sent = []
+    on_websockets(confirmations) do |wallet, received|
+      active = []
+      daemon =
+        Thread.new do
+          wallet.accept(addresses, active, subscription_id: 42) { |_| nil }
+        end
+      wait_for(10) { !active.empty? }
+      addresses.append(Eth::Key.new(priv: WALTER).address.to_s.downcase)
+      wait_for(10) do
+        sent = File.readlines(received).map { |line| JSON.parse(line) }
+        sent.any? { |m| m['method'] == 'eth_unsubscribe' }
+      end
+      daemon.kill
+      daemon.join(30)
+    end
+    assert_equal(['0xaaa'], sent.find { |m| m['method'] == 'eth_unsubscribe' }['params'])
+  end
+
+  def test_stops_resubscribing_after_an_address_leaves
+    WebMock.enable_net_connect!
+    walter = Eth::Key.new(priv: WALTER).address.to_s.downcase
+    addresses = [Eth::Key.new(priv: JEFF).address.to_s.downcase, walter]
+    subscribes = 0
+    on_websockets(confirmations) do |wallet, received|
+      active = []
+      daemon =
+        Thread.new do
+          wallet.accept(addresses, active, subscription_id: 42) { |_| nil }
+        end
+      wait_for(10) { active.size == 2 }
+      addresses.delete(walter)
+      sleep(4)
+      daemon.kill
+      daemon.join(30)
+      subscribes = File.readlines(received).count { |line| JSON.parse(line)['method'] == 'eth_subscribe' }
+    end
+    assert_equal(2, subscribes)
+  end
+
   def receipt(transfers, status: '0x1')
     {
       jsonrpc: '2.0',
