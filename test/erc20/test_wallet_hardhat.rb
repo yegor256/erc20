@@ -49,7 +49,10 @@ class TestWalletHardhat < ERC20::Test
   def test_checks_eth_balance
     WebMock.enable_net_connect!
     on_hardhat do |wallet|
-      assert_equal(456_000_000_000, wallet.balance(Eth::Key.new(priv: WALTER).address.to_s))
+      assert_equal(
+        66_666_666_666_666_666_666_666, wallet.eth_balance(Eth::Key.new(priv: WALTER).address.to_s),
+        'The ETH balance that hardhat gave to Walter cannot be read as a different number'
+      )
     end
   end
 
