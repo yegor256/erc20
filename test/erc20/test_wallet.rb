@@ -13,6 +13,7 @@ require 'os'
 require 'random-port'
 require 'shellwords'
 require 'threads'
+require 'timeout'
 require 'typhoeus'
 require_relative '../../lib/erc20/wallet'
 require_relative '../test__helper'
@@ -464,6 +465,100 @@ class TestWallet < ERC20::Test
       daemon.join(30)
     end
     assert_match(/Failed to parse/, buf.to_s, 'A corrupt frame cannot be discarded silently')
+  end
+
+  def test_never_defaults_to_a_zero_subscription_id
+    WebMock.enable_net_connect!
+    seed = srand(177_660)
+    sent = []
+    on_websockets([[{ jsonrpc: '2.0', id: 1, result: '0x42' }]]) do |wallet, received|
+      daemon =
+        Thread.new do
+          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase]) { |_| nil }
+        end
+      wait_for(10) { !File.readlines(received).empty? }
+      sent = File.readlines(received).map { |line| JSON.parse(line)['method'] }
+      daemon.kill
+      daemon.join(30)
+    end
+    assert_includes(
+      sent, 'eth_subscribe',
+      'The default subscription ID cannot be a zero, which the method rejects itself'
+    )
+  ensure
+    srand(seed)
+  end
+
+  def test_subscribes_with_a_fractional_delay
+    WebMock.enable_net_connect!
+    seen = []
+    on_websockets([[{ jsonrpc: '2.0', id: 42, result: '0x42' }]]) do |wallet|
+      active = []
+      daemon =
+        Thread.new do
+          wallet.accept(
+            [Eth::Key.new(priv: JEFF).address.to_s.downcase], active,
+            delay: 0.1, subscription_id: 42
+          ) { |_| nil }
+        end
+      wait_for(10) { !active.empty? }
+      seen = active.to_a.dup
+      daemon.kill
+      daemon.join(30)
+    end
+    refute_empty(seen, 'A fractional delay cannot be rejected, since the docs promise it works')
+  end
+
+  def test_rejects_an_address_without_a_prefix
+    WebMock.disable_net_connect!
+    wallet = ERC20::Wallet.new(host: 'example.org', log: Loog::NULL)
+    assert_match(
+      /Invalid format of the address/,
+      assert_raises(ArgumentError) do
+        Timeout.timeout(10) do
+          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase[2..]]) { |_| nil }
+        end
+      end.message,
+      'An address without the 0x prefix cannot monitor a different address silently'
+    )
+  end
+
+  def test_rejects_a_nil_address_in_the_list
+    WebMock.disable_net_connect!
+    wallet = ERC20::Wallet.new(host: 'example.org', log: Loog::NULL)
+    assert_match(
+      /Each address must be a String/,
+      assert_raises(ArgumentError) do
+        Timeout.timeout(10) { wallet.accept([nil]) { |_| nil } }
+      end.message,
+      'A nil in the list of addresses cannot reach the filter of the subscription'
+    )
+  end
+
+  def test_rejects_an_address_added_at_runtime
+    WebMock.enable_net_connect!
+    addresses = [Eth::Key.new(priv: JEFF).address.to_s.downcase]
+    crashes = []
+    on_websockets(confirmations) do |wallet|
+      active = []
+      daemon =
+        Thread.new do
+          wallet.accept(addresses, active, subscription_id: 42) { |_| nil }
+        end
+      daemon.report_on_exception = false
+      wait_for(10) { !active.empty? }
+      addresses.append(Eth::Key.new(priv: WALTER).address.to_s.downcase[2..])
+      begin
+        daemon.join(10)
+      rescue ArgumentError => e
+        crashes.append(e.message)
+      end
+      daemon.kill
+    end
+    assert_match(
+      /Invalid format of the address/, crashes.first,
+      'An address that arrives later cannot skip the check'
+    )
   end
 
   def receipt(transfers, status: '0x1')

@@ -407,7 +407,10 @@ class ERC20::Wallet
   #
   # The +addresses+ must have +to_a()+ implemented. This method will be
   # called every +delay+ seconds. It is expected that it returns the list
-  # of Ethereum public addresses that must be monitored.
+  # of Ethereum public addresses that must be monitored. Every address must
+  # be a hex with the +0x+ prefix, both at the start and later, when the list
+  # changes: a malformed address makes the filter of the subscription target
+  # a different address, thus payments are never seen.
   #
   # The +active+ must have +append()+, +clear()+ and +to_a()+ implemented. This
   # array holds the addresses that the node has confirmed a subscription for,
@@ -442,17 +445,18 @@ class ERC20::Wallet
   # @param [Array<String>] addresses Addresses to monitor
   # @param [Array] active List of addresses that we are actually listening to
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
-  # @param [Integer] delay How many seconds to wait between +eth_subscribe+ calls
+  # @param [Numeric] delay How many seconds to wait between +eth_subscribe+ calls
   # @param [Integer] subscription_id Unique ID of the subscription
-  def accept(addresses, active = [], raw: false, delay: 1, subscription_id: rand(99_999), &)
+  def accept(addresses, active = [], raw: false, delay: 1, subscription_id: rand(1..99_999), &)
     raise(ArgumentError, 'Addresses can\'t be nil') unless addresses
     raise(ArgumentError, 'Addresses must respond to .to_a()') unless addresses.respond_to?(:to_a)
+    to_addresses(addresses)
     raise(ArgumentError, 'Active can\'t be nil') unless active
     raise(ArgumentError, 'Active must respond to .to_a()') unless active.respond_to?(:to_a)
     raise(ArgumentError, 'Active must respond to .append()') unless active.respond_to?(:append)
     raise(ArgumentError, 'Active must respond to .clear()') unless active.respond_to?(:clear)
-    raise(ArgumentError, 'Delay must be an Integer') unless delay.is_a?(Integer)
-    raise(ArgumentError, 'Delay must be a positive Integer or positive Float') unless delay.positive?
+    raise(ArgumentError, 'Delay must be a number') unless delay.is_a?(Numeric)
+    raise(ArgumentError, 'Delay must be a positive number') unless delay.positive?
     raise(ArgumentError, 'Subscription ID must be an Integer') unless subscription_id.is_a?(Integer)
     raise(ArgumentError, 'Subscription ID must be a positive Integer') unless subscription_id.positive?
     EventMachine.run do
@@ -465,7 +469,7 @@ class ERC20::Wallet
   # @param [Array<String>] addresses Addresses to monitor
   # @param [Array] active List of addresses that we are actually listening to
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
-  # @param [Integer] delay How many seconds to wait between +eth_subscribe+ calls
+  # @param [Numeric] delay How many seconds to wait between +eth_subscribe+ calls
   # @param [Integer] subscription_id Unique ID of the subscription
   # @param [Integer] since The number of the last block we have seen a payment in
   # @return [Websocket]
@@ -485,6 +489,7 @@ class ERC20::Wallet
           timer =
             EventMachine.add_periodic_timer(delay) do
               next if active.to_a.sort == addresses.to_a.sort
+              wanted = to_addresses(addresses).dup
               # rubocop:disable Style/Send
               if subscription
                 ws.send(
@@ -498,7 +503,6 @@ class ERC20::Wallet
                 log_it(:debug, "Requested to unsubscribe ##{subscription_id} from #{subscription}")
                 subscription = nil
               end
-              wanted = addresses.to_a.dup
               ws.send(
                 {
                   jsonrpc: '2.0',
@@ -578,6 +582,13 @@ class ERC20::Wallet
           log_it(:debug, "Failed ##{subscription_id} at #{log_url}: #{e.message}")
         end
       end
+    end
+  end
+
+  def to_addresses(addresses)
+    addresses.to_a.each do |a|
+      raise(ArgumentError, 'Each address must be a String') unless a.is_a?(String)
+      raise(ArgumentError, "Invalid format of the address (#{a})") unless /^0x[0-9a-fA-F]{40}$/.match?(a)
     end
   end
 
