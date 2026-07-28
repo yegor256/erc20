@@ -11,6 +11,7 @@ require 'json'
 require 'jsonrpc/client'
 require 'loog'
 require 'uri'
+require_relative 'checks'
 require_relative 'erc20'
 
 # A wallet with ERC20 tokens on Ethereum.
@@ -58,11 +59,10 @@ require_relative 'erc20'
 # Copyright:: Copyright (c) 2025 Yegor Bugayenko
 # License:: MIT
 class ERC20::Wallet
+  include ERC20::Checks
+
   USDT = '0xdac17f958d2ee523a2206206994597c13d831ec7'
   TRANSFER = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
-
-  MAX_AMOUNT = (2**256) - 1
-  private_constant :MAX_AMOUNT
 
   attr_reader :host, :port, :ssl, :chain, :contract, :ws_path, :http_path
 
@@ -137,9 +137,7 @@ class ERC20::Wallet
   # @param [String] address Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in tokens
   def balance(address)
-    raise(ArgumentError, 'Address can\'t be nil') unless address
-    raise(ArgumentError, 'Address must be a String') unless address.is_a?(String)
-    raise(ArgumentError, 'Invalid format of the address') unless /^0x[0-9a-fA-F]{40}$/.match?(address)
+    to_address(address)
     data = "0x70a08231000000000000000000000000#{address[2..].downcase}"
     hex = with_jsonrpc { |jr| jr.eth_call({ to: @contract, data: data }, 'latest') }
     unless /^0x[0-9a-fA-F]{64}$/.match?(hex)
@@ -162,9 +160,7 @@ class ERC20::Wallet
   # @param [String] address Public key, in hex, starting from '0x'
   # @return [Integer] Balance, in ETH
   def eth_balance(address)
-    raise(ArgumentError, 'Address can\'t be nil') unless address
-    raise(ArgumentError, 'Address must be a String') unless address.is_a?(String)
-    raise(ArgumentError, 'Invalid format of the address') unless /^0x[0-9a-fA-F]{40}$/.match?(address)
+    to_address(address)
     hex = with_jsonrpc { |jr| jr.eth_getBalance(address, 'latest') }
     unless /^0x[0-9a-fA-F]+$/.match?(hex)
       raise(StandardError, "The node answered #{hex.inspect} instead of a hex quantity, for the balance of #{address}")
@@ -186,13 +182,8 @@ class ERC20::Wallet
   # @param [String] to Public key of the receiver, in hex, starting from '0x'
   # @return [Integer] Amount, in ERC20 tokens
   def sum_of(txn, to: nil)
-    raise(ArgumentError, 'Transaction hash can\'t be nil') unless txn
-    raise(ArgumentError, 'Transaction hash must be a String') unless txn.is_a?(String)
-    raise(ArgumentError, 'Invalid format of the transaction hash') unless /^0x[0-9a-fA-F]{64}$/.match?(txn)
-    unless to.nil?
-      raise(ArgumentError, 'Address must be a String') unless to.is_a?(String)
-      raise(ArgumentError, 'Invalid format of the address') unless /^0x[0-9a-fA-F]{40}$/.match?(to)
-    end
+    to_txn(txn)
+    to_address(to) unless to.nil?
     receipt =
       with_jsonrpc do |jr|
         jr.eth_getTransactionReceipt(txn)
@@ -226,16 +217,9 @@ class ERC20::Wallet
   # @param [Integer] amount How many ERC20 tokens to send
   # @return [Integer] Number of gas units required
   def gas_estimate(from, to, amount)
-    raise(ArgumentError, 'Address can\'t be nil') unless from
-    raise(ArgumentError, 'Address must be a String') unless from.is_a?(String)
-    raise(ArgumentError, 'Invalid format of the address') unless /^0x[0-9a-fA-F]{40}$/.match?(from)
-    raise(ArgumentError, 'Address can\'t be nil') unless to
-    raise(ArgumentError, 'Address must be a String') unless to.is_a?(String)
-    raise(ArgumentError, 'Invalid format of the address') unless /^0x[0-9a-fA-F]{40}$/.match?(to)
-    raise(ArgumentError, 'Amount can\'t be nil') unless amount
-    raise(ArgumentError, "Amount (#{amount}) must be an Integer") unless amount.is_a?(Integer)
-    raise(ArgumentError, "Amount (#{amount}) must be a positive Integer") unless amount.positive?
-    raise(ArgumentError, "Amount (#{amount}) must fit into uint256") if amount > MAX_AMOUNT
+    to_address(from)
+    to_address(to)
+    to_amount(amount)
     gas =
       with_jsonrpc do |jr|
         jr.eth_estimateGas({ from:, to: @contract, data: to_pay_data(to, amount) }, 'latest').to_i(16)
@@ -307,24 +291,11 @@ class ERC20::Wallet
   # @param [Integer] price The most you pay per computation unit
   # @return [String] Transaction hash
   def pay(priv, address, amount, limit: nil, price: gas_price)
-    raise(ArgumentError, 'Private key can\'t be nil') unless priv
-    raise(ArgumentError, 'Private key must be a String') unless priv.is_a?(String)
-    raise(ArgumentError, 'Invalid format of private key') unless /^[0-9a-fA-F]{64}$/.match?(priv)
-    raise(ArgumentError, 'Address can\'t be nil') unless address
-    raise(ArgumentError, 'Address must be a String') unless address.is_a?(String)
-    raise(ArgumentError, 'Invalid format of the address') unless /^0x[0-9a-fA-F]{40}$/.match?(address)
-    raise(ArgumentError, 'Amount can\'t be nil') unless amount
-    raise(ArgumentError, "Amount (#{amount}) must be an Integer") unless amount.is_a?(Integer)
-    raise(ArgumentError, "Amount (#{amount}) must be a positive Integer") unless amount.positive?
-    raise(ArgumentError, "Amount (#{amount}) must fit into uint256") if amount > MAX_AMOUNT
-    if limit
-      raise(ArgumentError, 'Gas limit must be an Integer') unless limit.is_a?(Integer)
-      raise(ArgumentError, "Gas limit #{limit} is below #{Eth::Tx::DEFAULT_GAS_LIMIT}") if limit < Eth::Tx::DEFAULT_GAS_LIMIT
-      raise(ArgumentError, "Gas limit #{limit} is above #{Eth::Tx::BLOCK_GAS_LIMIT}") if limit > Eth::Tx::BLOCK_GAS_LIMIT
-    end
-    raise(ArgumentError, 'Gas price can\'t be nil') unless price
-    raise(ArgumentError, 'Gas price must be an Integer') unless price.is_a?(Integer)
-    raise(ArgumentError, 'Gas price must be a positive Integer') unless price.positive?
+    to_priv(priv)
+    to_address(address)
+    to_amount(amount)
+    to_limit(limit) if limit
+    to_price(price)
     key = Eth::Key.new(priv: priv)
     from = key.address.to_s
     tnx =
@@ -358,18 +329,10 @@ class ERC20::Wallet
   # @param [Integer] price The most you pay per computation unit
   # @return [String] Transaction hash
   def eth_pay(priv, address, amount, price: gas_price)
-    raise(ArgumentError, 'Private key can\'t be nil') unless priv
-    raise(ArgumentError, 'Private key must be a String') unless priv.is_a?(String)
-    raise(ArgumentError, 'Invalid format of private key') unless /^[0-9a-fA-F]{64}$/.match?(priv)
-    raise(ArgumentError, 'Address can\'t be nil') unless address
-    raise(ArgumentError, 'Address must be a String') unless address.is_a?(String)
-    raise(ArgumentError, 'Invalid format of the address') unless /^0x[0-9a-fA-F]{40}$/.match?(address)
-    raise(ArgumentError, 'Amount can\'t be nil') unless amount
-    raise(ArgumentError, "Amount (#{amount}) must be an Integer") unless amount.is_a?(Integer)
-    raise(ArgumentError, "Amount (#{amount}) must be a positive Integer") unless amount.positive?
-    raise(ArgumentError, 'Gas price can\'t be nil') unless price
-    raise(ArgumentError, 'Gas price must be an Integer') unless price.is_a?(Integer)
-    raise(ArgumentError, 'Gas price must be a positive Integer') unless price.positive?
+    to_priv(priv)
+    to_address(address)
+    to_amount(amount)
+    to_price(price)
     key = Eth::Key.new(priv: priv)
     from = key.address.to_s
     tnx =
@@ -448,17 +411,10 @@ class ERC20::Wallet
   # @param [Numeric] delay How many seconds to wait between +eth_subscribe+ calls
   # @param [Integer] subscription_id Unique ID of the subscription
   def accept(addresses, active = [], raw: false, delay: 1, subscription_id: rand(1..99_999), &)
-    raise(ArgumentError, 'Addresses can\'t be nil') unless addresses
-    raise(ArgumentError, 'Addresses must respond to .to_a()') unless addresses.respond_to?(:to_a)
     to_addresses(addresses)
-    raise(ArgumentError, 'Active can\'t be nil') unless active
-    raise(ArgumentError, 'Active must respond to .to_a()') unless active.respond_to?(:to_a)
-    raise(ArgumentError, 'Active must respond to .append()') unless active.respond_to?(:append)
-    raise(ArgumentError, 'Active must respond to .clear()') unless active.respond_to?(:clear)
-    raise(ArgumentError, 'Delay must be a number') unless delay.is_a?(Numeric)
-    raise(ArgumentError, 'Delay must be a positive number') unless delay.positive?
-    raise(ArgumentError, 'Subscription ID must be an Integer') unless subscription_id.is_a?(Integer)
-    raise(ArgumentError, 'Subscription ID must be a positive Integer') unless subscription_id.positive?
+    to_active(active)
+    to_delay(delay)
+    to_subscription(subscription_id)
     EventMachine.run do
       reaccept(addresses, active, raw:, delay:, subscription_id:, &)
     end
@@ -582,13 +538,6 @@ class ERC20::Wallet
           log_it(:debug, "Failed ##{subscription_id} at #{log_url}: #{e.message}")
         end
       end
-    end
-  end
-
-  def to_addresses(addresses)
-    addresses.to_a.each do |a|
-      raise(ArgumentError, 'Each address must be a String') unless a.is_a?(String)
-      raise(ArgumentError, "Invalid format of the address (#{a})") unless /^0x[0-9a-fA-F]{40}$/.match?(a)
     end
   end
 

@@ -83,21 +83,104 @@ class TestFakeWallet < ERC20::Test
     address = '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'
     w = ERC20::FakeWallet.new
     amount = 555_000
-    txn = w.pay(priv, address, amount, limit: 999, price: 777)
+    txn = w.pay(priv, address, amount, limit: 66_000, price: 777)
     assert_equal(66, txn.length)
     assert_match(/^0x[a-f0-9]{64}$/, txn)
     assert_equal(ERC20::FakeWallet::TXN_HASH, txn)
-    assert_includes(w.history, { method: :pay, result: txn, priv:, address:, amount:, limit: 999, price: 777 })
+    assert_includes(w.history, { method: :pay, result: txn, priv:, address:, amount:, limit: 66_000, price: 777 })
   end
 
   def test_pays_fake_eths
     txn = ERC20::FakeWallet.new.eth_pay(
-      Eth::Key.new(priv: '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a'),
+      '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a',
       '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1',
       555
     )
     assert_equal(66, txn.length)
     assert_match(/^0x[a-f0-9]{64}$/, txn)
+  end
+
+  def test_returns_gas_price_in_wei
+    assert_operator(
+      ERC20::FakeWallet.new.gas_price, :>=, ERC20::Wallet::GAS_PRICE_TIP,
+      'A price in wei cannot be below the tip that the real wallet always adds'
+    )
+  end
+
+  def test_rejects_a_malformed_address
+    assert_match(
+      /Invalid format of the address/,
+      assert_raises(ArgumentError) { ERC20::FakeWallet.new.balance('garbage') }.message,
+      'A malformed address cannot have a balance, the real wallet never reports one'
+    )
+  end
+
+  def test_rejects_a_negative_amount
+    assert_match(
+      /must be a positive Integer/,
+      assert_raises(ArgumentError) do
+        ERC20::FakeWallet.new.pay(
+          '81a9b2114d53731ecc84b261ef6c0387dde34d5907fe7b441240cc21d61bf80a',
+          '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1', -5
+        )
+      end.message,
+      'A negative payment cannot be recorded as if it were sent'
+    )
+  end
+
+  def test_rejects_a_nil_private_key
+    assert_match(
+      /Private key can't be nil/,
+      assert_raises(ArgumentError) do
+        ERC20::FakeWallet.new.eth_pay(nil, '0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1', 5)
+      end.message,
+      'A payment without a private key cannot look successful'
+    )
+  end
+
+  def test_complains_like_the_real_wallet
+    assert_equal(
+      assert_raises(ArgumentError) do
+        ERC20::Wallet.new(host: 'example.com', log: Loog::NULL).balance('0xdead')
+      end.message,
+      assert_raises(ArgumentError) { ERC20::FakeWallet.new.balance('0xdead') }.message,
+      'The fake wallet cannot complain about a broken address in its own words'
+    )
+  end
+
+  def test_accepts_a_subscription_id
+    crashes = []
+    daemon =
+      Thread.new do
+        ERC20::FakeWallet.new.accept(
+          Primitivo.new(['0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1']), Primitivo.new([]),
+          delay: 0.1, subscription_id: 42
+        ) { |_| nil }
+      rescue StandardError => e
+        crashes.append(e.message)
+      end
+    daemon.join(1)
+    daemon.kill
+    assert_empty(crashes, 'The subscription ID that the real wallet takes cannot be refused by the fake one')
+  end
+
+  def test_rejects_a_broken_address_at_runtime
+    addresses = Primitivo.new(['0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1'])
+    crashes = []
+    daemon =
+      Thread.new do
+        ERC20::FakeWallet.new.accept(addresses, Primitivo.new([]), delay: 0.1) { |_| nil }
+      rescue StandardError => e
+        crashes.append(e.message)
+      end
+    addresses.append('garbage')
+    wait_for(10) { !crashes.empty? }
+    daemon.kill
+    daemon.join(30)
+    assert_match(
+      /Invalid format of the address/, crashes.first,
+      'An address that arrives later cannot be monitored silently'
+    )
   end
 
   def test_accepts_payments_on_hardhat
