@@ -94,7 +94,7 @@ class TestWalletLive < ERC20::Test
     net = mainnet
     daemon =
       Thread.new do
-        net.accept([STABLE], active) { |_| nil }
+        net.accept([STABLE], active) { |event| event }
       rescue StandardError => e
         trouble = e
         fake_loog.error(Backtrace.new(e))

@@ -155,7 +155,7 @@ class TestFakeWallet < ERC20::Test
         ERC20::FakeWallet.new.accept(
           Primitivo.new(['0xfadef8ba4a5d709a2bf55b7a8798c9b438c640c1']), Primitivo.new([]),
           delay: 0.1, subscription_id: 42
-        ) { |_| nil }
+        ) { |event| event }
       rescue StandardError => e
         crashes.append(e.message)
       end
@@ -169,7 +169,7 @@ class TestFakeWallet < ERC20::Test
     crashes = []
     daemon =
       Thread.new do
-        ERC20::FakeWallet.new.accept(addresses, Primitivo.new([]), delay: 0.1) { |_| nil }
+        ERC20::FakeWallet.new.accept(addresses, Primitivo.new([]), delay: 0.1) { |event| event }
       rescue StandardError => e
         crashes.append(e.message)
       end

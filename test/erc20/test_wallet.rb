@@ -95,7 +95,7 @@ class TestWallet < ERC20::Test
       { status: 200, body: GOOD_JSON, headers: { 'Content-Type' => 'application/json' } }
     )
     w = ERC20::Wallet.new(host: 'example.org', http_path: '/', attempts: 3, log: Loog::NULL)
-    w.define_singleton_method(:sleep) { |*| nil }
+    w.define_singleton_method(:sleep) { |*| 0 }
     assert_equal(0x1F1F1F, w.balance(Eth::Key.new(priv: JEFF).address.to_s))
   end
 
@@ -105,7 +105,7 @@ class TestWallet < ERC20::Test
       status: 200, body: CHALLENGE, headers: { 'Content-Type' => 'text/html' }
     )
     w = ERC20::Wallet.new(host: 'example.org', http_path: '/', attempts: 3, log: Loog::NULL)
-    w.define_singleton_method(:sleep) { |*| nil }
+    w.define_singleton_method(:sleep) { |*| 0 }
     assert_raises(StandardError) do
       w.balance(Eth::Key.new(priv: JEFF).address.to_s)
     end
@@ -123,7 +123,7 @@ class TestWallet < ERC20::Test
       host: 'example.org', http_path: '/',
       fallbacks: ['https://backup.example.org/'], attempts: 2, log: Loog::NULL
     )
-    w.define_singleton_method(:sleep) { |*| nil }
+    w.define_singleton_method(:sleep) { |*| 0 }
     assert_equal(0x1F1F1F, w.balance(Eth::Key.new(priv: JEFF).address.to_s))
   end
 
@@ -139,7 +139,7 @@ class TestWallet < ERC20::Test
       host: 'example.org', http_path: '/',
       fallbacks: ['https://backup.example.org/'], log: Loog::NULL
     )
-    w.define_singleton_method(:sleep) { |*| nil }
+    w.define_singleton_method(:sleep) { |*| 0 }
     assert_equal(0x1F1F1F, w.balance(Eth::Key.new(priv: JEFF).address.to_s))
   end
 
@@ -158,7 +158,7 @@ class TestWallet < ERC20::Test
       host: 'example.org', http_path: '/',
       fallbacks: ['https://first.example.org/', 'https://second.example.org/'], log: Loog::NULL
     )
-    w.define_singleton_method(:sleep) { |*| nil }
+    w.define_singleton_method(:sleep) { |*| 0 }
     assert_equal(0x1F1F1F, w.balance(Eth::Key.new(priv: JEFF).address.to_s))
   end
 
@@ -175,7 +175,7 @@ class TestWallet < ERC20::Test
       host: 'example.org', http_path: '/',
       fallbacks: ['https://backup.example.org/'], attempts: 3, log: Loog::NULL
     )
-    w.define_singleton_method(:sleep) { |*| nil }
+    w.define_singleton_method(:sleep) { |*| 0 }
     begin
       w.balance(Eth::Key.new(priv: JEFF).address.to_s)
     rescue StandardError => e
@@ -219,7 +219,7 @@ class TestWallet < ERC20::Test
       }
     end
     w = ERC20::Wallet.new(host: 'example.org', http_path: '/', attempts: 3, log: Loog::NULL)
-    w.define_singleton_method(:sleep) { |*| nil }
+    w.define_singleton_method(:sleep) { |*| 0 }
     w.pay(JEFF, Eth::Key.new(priv: WALTER).address.to_s, 1000, limit: 60_000, price: 1000)
     assert_equal(1, sent.uniq.size)
   end
@@ -285,7 +285,7 @@ class TestWallet < ERC20::Test
       active = []
       daemon =
         Thread.new do
-          wallet.accept(addresses, active, subscription_id: 42) { |_| nil }
+          wallet.accept(addresses, active, subscription_id: 42) { |event| event }
         end
       wait_for(10) { !active.empty? }
       addresses.append(Eth::Key.new(priv: WALTER).address.to_s.downcase)
@@ -308,7 +308,7 @@ class TestWallet < ERC20::Test
       active = []
       daemon =
         Thread.new do
-          wallet.accept(addresses, active, subscription_id: 42) { |_| nil }
+          wallet.accept(addresses, active, subscription_id: 42) { |event| event }
         end
       wait_for(10) { active.size == 2 }
       addresses.delete(walter)
@@ -426,7 +426,7 @@ class TestWallet < ERC20::Test
       active = []
       daemon =
         Thread.new do
-          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase], active, subscription_id: 42) { |_| nil }
+          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase], active, subscription_id: 42) { |event| event }
         end
       sleep(3)
       seen = active.to_a.dup
@@ -442,7 +442,7 @@ class TestWallet < ERC20::Test
     on_websockets(rejection) do |wallet, received|
       daemon =
         Thread.new do
-          wallet.accept([Eth::Key.new(priv: WALTER).address.to_s.downcase], [], subscription_id: 42) { |_| nil }
+          wallet.accept([Eth::Key.new(priv: WALTER).address.to_s.downcase], [], subscription_id: 42) { |event| event }
         end
       sleep(4)
       daemon.kill
@@ -458,7 +458,7 @@ class TestWallet < ERC20::Test
     on_websockets([['}not json{']], log: buf) do |wallet|
       daemon =
         Thread.new do
-          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase], [], subscription_id: 42) { |_| nil }
+          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase], [], subscription_id: 42) { |event| event }
         end
       wait_for(10) { buf.to_s.include?('not json') }
       daemon.kill
@@ -474,7 +474,7 @@ class TestWallet < ERC20::Test
     on_websockets([[{ jsonrpc: '2.0', id: 1, result: '0x42' }]]) do |wallet, received|
       daemon =
         Thread.new do
-          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase]) { |_| nil }
+          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase]) { |event| event }
         end
       wait_for(10) { !File.readlines(received).empty? }
       sent = File.readlines(received).map { |line| JSON.parse(line)['method'] }
@@ -499,7 +499,7 @@ class TestWallet < ERC20::Test
           wallet.accept(
             [Eth::Key.new(priv: JEFF).address.to_s.downcase], active,
             delay: 0.1, subscription_id: 42
-          ) { |_| nil }
+          ) { |event| event }
         end
       wait_for(10) { !active.empty? }
       seen = active.to_a.dup
@@ -516,7 +516,7 @@ class TestWallet < ERC20::Test
       /Invalid format of the address/,
       assert_raises(ArgumentError) do
         Timeout.timeout(10) do
-          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase[2..]]) { |_| nil }
+          wallet.accept([Eth::Key.new(priv: JEFF).address.to_s.downcase[2..]]) { |event| event }
         end
       end.message,
       'An address without the 0x prefix cannot monitor a different address silently'
@@ -529,7 +529,7 @@ class TestWallet < ERC20::Test
     assert_match(
       /Each address must be a String/,
       assert_raises(ArgumentError) do
-        Timeout.timeout(10) { wallet.accept([nil]) { |_| nil } }
+        Timeout.timeout(10) { wallet.accept([nil]) { |event| event } }
       end.message,
       'A nil in the list of addresses cannot reach the filter of the subscription'
     )
@@ -543,7 +543,7 @@ class TestWallet < ERC20::Test
       active = []
       daemon =
         Thread.new do
-          wallet.accept(addresses, active, subscription_id: 42) { |_| nil }
+          wallet.accept(addresses, active, subscription_id: 42) { |event| event }
         end
       daemon.report_on_exception = false
       wait_for(10) { !active.empty? }
