@@ -71,9 +71,7 @@ class TestWalletHardhat < ERC20::Test
       to = Eth::Key.new(priv: WALTER).address.to_s
       sum = 42_000
       assert_operator(wallet.balance(Eth::Key.new(priv: JEFF).address.to_s), :>, sum * 2)
-      # rubocop:disable Elegant/NoRedundantVariable
-      before = wallet.balance(to)
-      # rubocop:enable Elegant/NoRedundantVariable
+      before = wallet.balance(to) # rubocop:disable Elegant/NoRedundantVariable
       txn = wallet.pay(JEFF, to, sum)
       assert_equal(66, txn.length)
       assert_match(/^0x[a-f0-9]{64}$/, txn)
@@ -95,9 +93,7 @@ class TestWalletHardhat < ERC20::Test
       to = Eth::Key.new(priv: WALTER).address.to_s
       sum = 42_000
       assert_operator(wallet.eth_balance(Eth::Key.new(priv: JEFF).address.to_s), :>, sum * 2)
-      # rubocop:disable Elegant/NoRedundantVariable
-      before = wallet.eth_balance(to)
-      # rubocop:enable Elegant/NoRedundantVariable
+      before = wallet.eth_balance(to) # rubocop:disable Elegant/NoRedundantVariable
       txn = wallet.eth_pay(JEFF, to, sum)
       assert_equal(66, txn.length)
       assert_match(/^0x[a-f0-9]{64}$/, txn)
@@ -111,9 +107,7 @@ class TestWalletHardhat < ERC20::Test
       to = Eth::Key.new(priv: WALTER).address.to_s
       sum = 42_000
       mul = 10
-      # rubocop:disable Elegant/NoRedundantVariable
-      before = wallet.balance(to)
-      # rubocop:enable Elegant/NoRedundantVariable
+      before = wallet.balance(to) # rubocop:disable Elegant/NoRedundantVariable
       Threads.new(mul).assert do
         wallet.pay(JEFF, to, sum)
       end
@@ -127,9 +121,7 @@ class TestWalletHardhat < ERC20::Test
       to = Eth::Key.new(priv: WALTER).address.to_s
       sum = 42_000
       mul = 10
-      # rubocop:disable Elegant/NoRedundantVariable
-      before = wallet.eth_balance(to)
-      # rubocop:enable Elegant/NoRedundantVariable
+      before = wallet.eth_balance(to) # rubocop:disable Elegant/NoRedundantVariable
       Threads.new(mul).assert do
         wallet.eth_pay(JEFF, to, sum)
       end

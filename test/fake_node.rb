@@ -33,9 +33,7 @@ class ERC20::FakeNode
         ws.onmessage do |msg|
           File.open(@received, 'a') { |f| f.puts(msg) }
           (@replies[seen] || []).each do |reply|
-            # rubocop:disable Style/Send
-            ws.send(to_frame(reply, msg))
-            # rubocop:enable Style/Send
+            ws.send(to_frame(reply, msg)) # rubocop:disable Style/Send
           end
           seen += 1
         end
