@@ -494,8 +494,7 @@ class ERC20::Wallet
               "#{active.to_a.map { |a| a[0..6] }.join(', ')}"
             )
             if since
-              # rubocop:disable Style/Send
-              ws.send(
+              ws.send( # rubocop:disable Style/Send
                 {
                   jsonrpc: '2.0',
                   id: subscription_id + 2,
@@ -503,7 +502,6 @@ class ERC20::Wallet
                   params: [to_filter(wanted).merge(fromBlock: format('0x%x', since + 1), toBlock: 'latest')]
                 }.to_json
               )
-              # rubocop:enable Style/Send
               log_it(:debug, "Requested ##{subscription_id} the logs of the blocks after ##{since}")
               since = nil
             end
