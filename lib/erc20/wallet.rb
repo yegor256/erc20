@@ -427,7 +427,10 @@ class ERC20::Wallet
   # @param [Boolean] raw TRUE if you need to get JSON events as they arrive from Websockets
   # @param [Numeric] delay How many seconds to wait between +eth_subscribe+ calls
   # @param [Integer] subscription_id Unique ID of the subscription
-  # @param [Integer] since The number of the last block we have seen a payment in
+  # An unknown height after a disconnect replays from genesis. Keep the old
+  # checkpoint until the backfill succeeds, even if newer live logs arrive.
+  #
+  # @param [Integer] since The first block to replay after a dropped connection
   # @return [Websocket]
   def reaccept(addresses, active, raw:, delay:, subscription_id:, since: nil, &)
     u = url(http: false)
@@ -493,26 +496,34 @@ class ERC20::Wallet
               "Subscribed ##{subscription_id} to #{active.to_a.size} addresses at #{log_url}: " \
               "#{active.to_a.map { |a| a[0..6] }.join(', ')}"
             )
+            if height.nil?
+              ws.send( # rubocop:disable Style/Send
+                { jsonrpc: '2.0', id: subscription_id + 3, method: 'eth_blockNumber', params: [] }.to_json
+              )
+            end
             if since
               ws.send( # rubocop:disable Style/Send
                 {
                   jsonrpc: '2.0',
                   id: subscription_id + 2,
                   method: 'eth_getLogs',
-                  params: [to_filter(wanted).merge(fromBlock: format('0x%x', since + 1), toBlock: 'latest')]
+                  params: [to_filter(wanted).merge(fromBlock: format('0x%x', since), toBlock: 'latest')]
                 }.to_json
               )
-              log_it(:debug, "Requested ##{subscription_id} the logs of the blocks after ##{since}")
-              since = nil
+              log_it(:debug, "Requested ##{subscription_id} the logs of the blocks from ##{since}")
             end
+          elsif data['id'] == subscription_id + 3
+            height ||= data['result'].to_i(16)
+            log_it(:debug, "Recorded initial block ##{height} for ##{subscription_id}")
           elsif data['id'] == subscription_id + 2
             log_it(:debug, "Received #{data['result'].size} logs mined while ##{subscription_id} was offline")
             data['result'].each do |log|
               height = [height, log['blockNumber'].to_s.to_i(16)].compact.max
               deliver(log, raw:, id: subscription_id, &)
             end
+            since = nil
           elsif data['method'] == 'eth_subscription' && data.dig('params', 'result')
-            height = [height, data['params']['result']['blockNumber'].to_s.to_i(16)].compact.max
+            height = [height, data['params']['result']['blockNumber'].to_s.to_i(16)].compact.max unless since
             deliver(data['params']['result'], raw:, id: subscription_id, &)
           end
         end
@@ -525,7 +536,7 @@ class ERC20::Wallet
           active.clear
           timer&.cancel
           EventMachine.add_timer(delay) do
-            reaccept(addresses, active, raw:, delay:, subscription_id: subscription_id + 1, since: height, &)
+            reaccept(addresses, active, raw:, delay:, subscription_id: subscription_id + 1, since: height || 0, &)
           end
         end
       end

@@ -367,7 +367,7 @@ class TestWallet < ERC20::Test
   def reconnection
     [
       [{ jsonrpc: '2.0', id: 'echo', result: '0xaaa' }, transfer(555, false)],
-      [{ jsonrpc: '2.0', id: 'echo', result: [to_log(888, block: '0x20', index: '0x1')] }]
+      [{ jsonrpc: '2.0', id: 'echo', result: [to_log(888, block: '0x10', index: '0x1')] }]
     ]
   end
 
@@ -391,10 +391,10 @@ class TestWallet < ERC20::Test
       daemon.kill
       daemon.join(30)
     end
-    assert_equal('0x11', sent.find { |m| m['method'] == 'eth_getLogs' }['params'].first['fromBlock'])
+    assert_equal('0x10', sent.find { |m| m['method'] == 'eth_getLogs' }['params'].first['fromBlock'])
   end
 
-  def test_yields_the_payment_missed_while_offline
+  def test_yields_a_second_payment_from_the_same_block
     WebMock.enable_net_connect!
     missed = nil
     on_websockets(reconnection) do |wallet, _received, reboot|
@@ -412,7 +412,47 @@ class TestWallet < ERC20::Test
       daemon.kill
       daemon.join(30)
     end
-    assert_equal(32, missed[:block], 'A payment mined during the outage cannot stay undelivered')
+    assert_equal(16, missed[:block], 'A payment mined during the outage cannot stay undelivered')
+  end
+
+  def test_yields_the_first_payment_after_a_reconnect
+    gap('0x10')
+  end
+
+  def test_yields_payments_after_losing_the_head_reply
+    gap(nil)
+  end
+
+  def gap(head)
+    WebMock.enable_net_connect!
+    replies = {
+      eth_subscribe: [{ jsonrpc: '2.0', id: 'echo', result: '0xaaa' }],
+      eth_blockNumber: head ? [{ jsonrpc: '2.0', id: 'echo', result: head }] : [],
+      eth_getLogs: [{ jsonrpc: '2.0', id: 'echo', result: [to_log(888, block: '0x11')] }]
+    }
+    events = []
+    sent = []
+    buf = Loog::Buffer.new
+    on_websockets(replies, log: buf) do |wallet, received, reboot|
+      active = []
+      daemon =
+        Thread.new do
+          wallet.accept([Eth::Key.new(priv: WALTER).address.to_s.downcase], active, subscription_id: 42) do |e|
+            events.append(e)
+          end
+        end
+      begin
+        wait_for(10) { head ? buf.to_s.include?('Recorded initial block #16') : !active.empty? }
+        reboot.call
+        wait_for(10) { !events.empty? }
+        sent = File.readlines(received).map { |line| JSON.parse(line) }
+      ensure
+        daemon.kill
+        daemon.join(30)
+      end
+    end
+    assert_equal(888, events.first[:amount])
+    assert_equal(head || '0x0', sent.find { |m| m['method'] == 'eth_getLogs' }['params'].first['fromBlock'])
   end
 
   def rejection
