@@ -28,7 +28,7 @@ Gem::Specification.new do |s|
   s.add_dependency('elapsed', '~>0.2')
   s.add_dependency('eth', '~>0.5')
   s.add_dependency('faye-websocket', '~>0.11')
-  s.add_dependency('json', '~>2.10')
+  s.add_dependency('json', '~>3.0')
   s.add_dependency('jsonrpc-client', '~>0.1')
   s.add_dependency('loog', '~>0.4')
   s.add_dependency('thor', '~>1.3')
