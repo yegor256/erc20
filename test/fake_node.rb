@@ -14,7 +14,8 @@ require_relative '../lib/erc20/erc20'
 # pre-canned ones: the first message of a connection gets the first group of
 # replies, the second one gets the second group, and so on. When the groups
 # are exhausted, the node stays silent. Every message that arrives is
-# appended to the given file, one per line.
+# appended to the given file, one per line. A Hash of replies instead maps
+# each RPC method to its replies, independently of the connection.
 #
 # A reply that is a String travels to the client verbatim, which is how a
 # test emits a frame that is not valid JSON. A reply with the +id+ of "echo"
@@ -32,7 +33,8 @@ class ERC20::FakeNode
         seen = 0
         ws.onmessage do |msg|
           File.open(@received, 'a') { |f| f.puts(msg) }
-          (@replies[seen] || []).each do |reply|
+          replies = @replies.is_a?(Hash) ? @replies[JSON.parse(msg)['method']] : @replies[seen]
+          (replies || []).each do |reply|
             ws.send(to_frame(reply, msg)) # rubocop:disable Style/Send
           end
           seen += 1
