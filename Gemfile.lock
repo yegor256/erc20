@@ -62,7 +62,7 @@ GEM
       qbash (~> 0.3)
     drb (2.2.3)
     ecdsa (1.2.0)
-    elapsed (0.3.1)
+    elapsed (0.3.2)
       loog (~> 0.6)
       tago (~> 0.1)
     ellipsized (0.3.0)
@@ -91,7 +91,7 @@ GEM
       logger
     faraday-net_http (3.5.0)
       net-http (~> 0.5)
-    faye-websocket (0.13.0)
+    faye-websocket (0.13.1)
       eventmachine (>= 0.12.0)
       websocket-driver (>= 0.9.0)
     ffi (1.17.4-arm64-darwin)
@@ -161,7 +161,7 @@ GEM
     racc (1.8.1)
     rainbow (3.1.1)
     rake (13.4.2)
-    random-port (0.8.2)
+    random-port (0.8.3)
       tago (~> 0.0)
     rbs (4.2.0)
       logger
@@ -244,7 +244,7 @@ GEM
       websocket-extensions (>= 0.2.0)
     websocket-extensions (0.2.0)
     win32ole (1.9.3)
-    yard (0.9.45)
+    yard (0.9.46)
 
 PLATFORMS
   arm64-darwin-22
